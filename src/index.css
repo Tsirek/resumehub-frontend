@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #4a64ec;
+  --color-primary-hover: #3b53d6;
+  --color-primary-soft: #e8ecfd;
+  --color-navy: #1b2158;
+  --color-ink: #1e2433;
+  --color-muted: #6b7385;
+  --color-page: #f4f6fc;
+  --color-field: #f7f9fc;
+  --color-line: #e3e7ef;
+  --color-success: #22b573;
+
+  --font-sans: "Rubik", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  @apply bg-page font-sans text-ink antialiased;
+}
