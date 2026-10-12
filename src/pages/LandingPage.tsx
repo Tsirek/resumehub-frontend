@@ -1,9 +1,9 @@
 import { Link } from 'react-router';
 import { ArrowRight, Star } from 'lucide-react';
 import { ResumePreview } from '../components/landing/ResumePreview';
-import { buttonClasses } from '../components/ui/Button';
+import { buttonClasses } from '../components/ui/buttonStyles';
 import { Logo } from '../components/ui/Logo';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/auth';
 import { cn } from '../lib/utils';
 import { ROUTES } from '../router/paths';
 

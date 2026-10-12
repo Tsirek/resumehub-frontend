@@ -3,7 +3,8 @@ import { Copy, Trash2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { resumePath } from '../../router/paths';
 import type { Resume, ResumeStatus } from '../../types';
-import { Button, buttonClasses } from '../ui/Button';
+import { Button } from '../ui/Button';
+import { buttonClasses } from '../ui/buttonStyles';
 
 // Статус «ready» в макете не показан, подпись выбрана мной
 const STATUS_LABEL: Record<ResumeStatus, string> = {

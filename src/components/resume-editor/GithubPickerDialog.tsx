@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { X } from 'lucide-react';
-import { fetchRepositories } from '../../api/github';
+import { fetchRepositories, getProjects } from '../../api/github';
 import type { Repository } from '../../types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -28,6 +28,12 @@ export function GithubPickerDialog({ open, onClose, onSelect }: GithubPickerDial
     if (!dialog) return;
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
+  }, [open]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (open) getProjects().then((items) => { if (!cancelled) setRepos(items); }).catch(() => { if (!cancelled) setError('Не удалось загрузить импортированные проекты'); });
+    return () => { cancelled = true; };
   }, [open]);
 
   const handleSearch = async (e: FormEvent<HTMLFormElement>) => {

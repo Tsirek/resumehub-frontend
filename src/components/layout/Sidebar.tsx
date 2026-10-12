@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router';
 import { Briefcase, ExternalLink, FileText, LogOut, Star, User, type LucideIcon } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/auth';
 import { cn, getInitials } from '../../lib/utils';
 import { ROUTES } from '../../router/paths';
 import { Logo } from '../ui/Logo';

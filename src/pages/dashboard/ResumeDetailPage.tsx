@@ -10,7 +10,8 @@ import { ProjectsForm } from '../../components/resume-editor/ProjectsForm';
 import { SectionTabs } from '../../components/resume-editor/SectionTabs';
 import { TextSectionForm } from '../../components/resume-editor/TextSectionForm';
 import { SECTIONS, isSectionId, type SectionId } from '../../components/resume-editor/sections';
-import { Button, buttonClasses } from '../../components/ui/Button';
+import { Button } from '../../components/ui/Button';
+import { buttonClasses } from '../../components/ui/buttonStyles';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { ROUTES } from '../../router/paths';
 import type { Resume, ResumeContent } from '../../types';
@@ -77,7 +78,7 @@ export default function ResumeDetailPage() {
     () => () => {
       const pending = pendingSave.current;
       pendingSave.current = null;
-      if (pending) void saveResumeContent(id, pending);
+      if (pending) void saveResumeContent(id, pending).catch(() => {});
     },
     [id],
   );
@@ -102,10 +103,11 @@ export default function ResumeDetailPage() {
     setExporting(true);
     setPdfMessage('');
     try {
+      if (content) await saveResumeContent(id, content);
       await exportResumePdf(id); // BACKEND: GET /resumes/:id/pdf
-      setPdfMessage('PDF появится после подключения бэкенда');
-    } catch {
-      setPdfMessage('Не удалось подготовить PDF');
+      setPdfMessage('PDF скачан');
+    } catch (e) {
+      setPdfMessage(e instanceof Error ? e.message : 'Не удалось подготовить PDF');
     } finally {
       setExporting(false);
     }
@@ -214,7 +216,7 @@ export default function ResumeDetailPage() {
 
       <footer className="mt-10 flex flex-wrap items-center justify-between gap-4">
         <p className="text-xs text-muted">
-          Изменения применяются сразу в этом сеансе.{' '}
+          Изменения сохраняются автоматически.{' '}
           <span aria-live="polite">{STATUS_TEXT[saveStatus]}</span>
         </p>
         <div className="flex gap-3">

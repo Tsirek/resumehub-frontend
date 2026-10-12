@@ -1,5 +1,5 @@
 import { Link, Navigate, Outlet } from 'react-router';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/auth';
 import { ROUTES } from '../../router/paths';
 import { Logo } from '../ui/Logo';
 

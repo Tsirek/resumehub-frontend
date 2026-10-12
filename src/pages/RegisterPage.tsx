@@ -4,7 +4,7 @@ import { ArrowRight, Lock, Mail, User } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Eyebrow } from '../components/ui/Eyebrow';
 import { Input } from '../components/ui/Input';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/auth';
 import { ROUTES } from '../router/paths';
 
 interface FormState {

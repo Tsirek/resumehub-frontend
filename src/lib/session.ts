@@ -1,6 +1,7 @@
 import type { User } from '../types';
 
 const TOKEN_KEY = 'rh_token';
+const REFRESH_KEY = 'rh_refresh';
 const USER_KEY = 'rh_user';
 
 // «Запомнить меня» → localStorage, иначе sessionStorage (сессия до закрытия вкладки).
@@ -13,6 +14,12 @@ const activeStorage = (): Storage | null => {
 };
 
 export const session = {
+  getRefreshToken: () => activeStorage()?.getItem(REFRESH_KEY) ?? null,
+  updateTokens: (token: string, refreshToken: string) => {
+    const storage = activeStorage();
+    storage?.setItem(TOKEN_KEY, token);
+    storage?.setItem(REFRESH_KEY, refreshToken);
+  },
   getToken: () => activeStorage()?.getItem(TOKEN_KEY) ?? null,
 
   getUser: (): User | null => {
@@ -25,10 +32,11 @@ export const session = {
     }
   },
 
-  save: (token: string, user: User, remember: boolean) => {
+  save: (token: string, user: User, remember: boolean, refreshToken: string) => {
     session.clear();
     const storage = remember ? localStorage : sessionStorage;
     storage.setItem(TOKEN_KEY, token);
+    storage.setItem(REFRESH_KEY, refreshToken);
     storage.setItem(USER_KEY, JSON.stringify(user));
   },
 
@@ -36,6 +44,8 @@ export const session = {
     for (const storage of [localStorage, sessionStorage]) {
       storage.removeItem(TOKEN_KEY);
       storage.removeItem(USER_KEY);
+      storage.removeItem(REFRESH_KEY);
     }
+    window.dispatchEvent(new Event('rh-session-cleared'));
   },
 };

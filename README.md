@@ -1,75 +1,29 @@
-# React + TypeScript + Vite
+# ResumeHub frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript + Vite. Работает с API проекта `PP-AUT-2026`.
 
-Currently, two official plugins are available:
+## Запуск
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+1. Запустите бэкенд: `docker compose up --build -d` в его каталоге.
+2. Здесь выполните `npm ci` и `npm run dev`.
+3. Откройте `http://localhost:5173` и зарегистрируйтесь.
 
-## React Compiler
+В разработке `/api/v1` проксируется Vite на `http://127.0.0.1:8000`.
+Чтобы использовать другой API, скопируйте `.env.example` в `.env` и задайте
+`VITE_API_URL=https://<api-host>/api/v1`. На API настройте `CORS_ORIGINS`.
+Для production с относительным URL нужен reverse proxy `/api` и SPA fallback.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Вход использует access/refresh-токены. «Запомнить меня» выбирает localStorage,
+иначе токены хранятся в sessionStorage. При истечении access-токена клиент
+обновляет его и повторяет запрос; параллельные запросы используют одно обновление.
+При истечении refresh-сессии пользователь возвращается на страницу входа.
 
-## Expanding the ESLint configuration
+Резюме и профиль сохраняются на сервере. Импортированные GitHub-проекты доступны
+в диалоге выбора проектов редактора. PDF пока остаётся заглушкой для отдельного сервиса.
+ИИ-редактор пока не настроен и показывает сообщение о недоступности.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Проверки
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
-
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
+- `npm run build`
+- `npm run lint`
+- `node --test tests/api.test.mjs`

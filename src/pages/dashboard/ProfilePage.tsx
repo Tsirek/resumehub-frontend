@@ -23,6 +23,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [status, setStatus] = useState<SaveStatus>('idle');
+  const [aiError, setAiError] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
@@ -55,11 +56,14 @@ export default function ProfilePage() {
 
   const handleImprove = async () => {
     setAiLoading(true);
+    setAiError('');
     try {
       const about = await improveAboutWithAI(profile.about); // BACKEND: POST /ai/improve-about
       const next = { ...profile, about };
       setProfile(next);
       await save(next);
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : 'Не удалось обработать текст');
     } finally {
       setAiLoading(false);
     }
@@ -69,7 +73,7 @@ export default function ProfilePage() {
     <>
       <PageHeader
         title="Ваш опыт — в одном месте"
-        subtitle="В макете редактор и профиль используют общие демонстрационные данные"
+        subtitle="Данные профиля используются при создании новых резюме."
       />
 
       <section className="rounded-2xl bg-white p-10">
@@ -94,6 +98,7 @@ export default function ProfilePage() {
           </span>
         </div>
 
+        {aiError && <p role="alert" className="mt-3 text-sm text-red-600">{aiError}</p>}
         <div className="mt-4 divide-y-2 divide-line">
           <div className="flex items-center justify-between py-3">
             <span className="text-sm font-medium text-ink">Проекты Github</span>
