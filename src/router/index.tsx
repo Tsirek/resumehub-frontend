@@ -7,6 +7,8 @@ import RegisterPage from '../pages/RegisterPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import ProfilePage from '../pages/dashboard/ProfilePage';
 import ResumesPage from '../pages/dashboard/ResumesPage';
+import ResumeDetailPage from '../pages/dashboard/ResumeDetailPage';
+import ProjectsPage from '../pages/dashboard/ProjectsPage';
 import PlaceholderPage from '../pages/dashboard/PlaceholderPage';
 import { ProtectedRoute } from './ProtectedRoute';
 import { ROUTES, type RouteHandle } from './paths';
@@ -42,9 +44,15 @@ export const router = createBrowserRouter([
         handle: { title: 'Резюме / Все резюме' } satisfies RouteHandle,
       },
       {
+        path: ROUTES.resumeDetail,
+        element: <ResumeDetailPage />,
+        // Запасной заголовок; после загрузки страница подставит «Резюме / <название>»
+        handle: { title: 'Резюме' } satisfies RouteHandle,
+      },
+      {
         path: ROUTES.projects,
-        element: <PlaceholderPage title="Проекты" />,
-        handle: { title: 'Проекты' } satisfies RouteHandle,
+        element: <ProjectsPage />,
+        handle: { title: 'Проекты / Github' } satisfies RouteHandle,
       },
       {
         path: ROUTES.adaptation,

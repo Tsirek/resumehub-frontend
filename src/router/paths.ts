@@ -5,10 +5,14 @@ export const ROUTES = {
   app: '/app',
   profile: '/app/profile',
   resumes: '/app/resumes',
+  resumeDetail: '/app/resumes/:id',
   projects: '/app/projects',
   adaptation: '/app/adaptation',
   responses: '/app/responses',
 } as const;
+
+/** Путь к конкретному резюме: /app/resumes/42 */
+export const resumePath = (id: string) => `${ROUTES.resumes}/${id}`;
 
 /** handle маршрута: заголовок для верхней панели кабинета */
 export interface RouteHandle {
