@@ -15,15 +15,15 @@ export const createEmptyProject = (): ProjectEntry => ({
   contribution: '',
 });
 
-/** В формах всегда есть хотя бы одна запись, поэтому по умолчанию по одной пустой */
+/** В формах опыта и проектов всегда есть хотя бы одна запись, остальные разделы начинаются с пустого списка */
 export const createEmptyContent = (): ResumeContent => ({
   contacts: { fullName: '', position: '', email: '', location: '' },
   about: '',
   experience: [createEmptyExperience()],
   projects: [createEmptyProject()],
-  skills: '',
-  education: '',
-  additional: '',
+  skills: [],
+  education: [],
+  additional: [],
 });
 
 const isBlank = (...values: string[]) => values.every((v) => v.trim() === '');

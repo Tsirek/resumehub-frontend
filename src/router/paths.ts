@@ -9,6 +9,7 @@ export const ROUTES = {
   projects: '/app/projects',
   adaptation: '/app/adaptation',
   responses: '/app/responses',
+  vacancies: '/app/vacancies',
 } as const;
 
 /** Путь к конкретному резюме: /app/resumes/42 */

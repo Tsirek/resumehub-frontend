@@ -9,7 +9,8 @@ import ProfilePage from '../pages/dashboard/ProfilePage';
 import ResumesPage from '../pages/dashboard/ResumesPage';
 import ResumeDetailPage from '../pages/dashboard/ResumeDetailPage';
 import ProjectsPage from '../pages/dashboard/ProjectsPage';
-import PlaceholderPage from '../pages/dashboard/PlaceholderPage';
+import { VacanciesPage } from '../pages/dashboard/VacanciesPage';
+import { AdaptationPage } from '../pages/dashboard/AdaptationPage';
 import { ProtectedRoute } from './ProtectedRoute';
 import { ROUTES, type RouteHandle } from './paths';
 
@@ -56,12 +57,12 @@ export const router = createBrowserRouter([
       },
       {
         path: ROUTES.adaptation,
-        element: <PlaceholderPage title="Адаптация" />,
+        element: <AdaptationPage />,
         handle: { title: 'Адаптация' } satisfies RouteHandle,
       },
       {
         path: ROUTES.responses,
-        element: <PlaceholderPage title="Отклики" />,
+        element: <VacanciesPage />,
         handle: { title: 'Отклики' } satisfies RouteHandle,
       },
     ],

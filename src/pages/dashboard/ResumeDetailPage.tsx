@@ -3,12 +3,14 @@ import { Link, useParams, useSearchParams } from 'react-router';
 import { ArrowLeft, Upload } from 'lucide-react';
 import { exportResumePdf, getResume, getResumeContent, saveResumeContent } from '../../api/resumes';
 import { AboutForm } from '../../components/resume-editor/AboutForm';
+import { AdditionalForm } from '../../components/resume-editor/AdditionalForm';
 import { ContactsForm } from '../../components/resume-editor/ContactsForm';
+import { EducationForm } from '../../components/resume-editor/EducationForm';
 import { ExperienceForm } from '../../components/resume-editor/ExperienceForm';
 import { LivePreview } from '../../components/resume-editor/LivePreview';
 import { ProjectsForm } from '../../components/resume-editor/ProjectsForm';
 import { SectionTabs } from '../../components/resume-editor/SectionTabs';
-import { TextSectionForm } from '../../components/resume-editor/TextSectionForm';
+import { SkillsForm } from '../../components/resume-editor/SkillsForm';
 import { SECTIONS, isSectionId, type SectionId } from '../../components/resume-editor/sections';
 import { Button, buttonClasses } from '../../components/ui/Button';
 import { usePageTitle } from '../../hooks/usePageTitle';
@@ -153,29 +155,22 @@ export default function ResumeDetailPage() {
         );
       case 'skills':
         return (
-          <TextSectionForm
-            title="Навыки"
-            label="Ваши навыки"
-            placeholder="Python, FastAPI, PostgreSQL, Docker"
-            value={content.skills}
+          <SkillsForm
+            skills={content.skills}
             onChange={(skills) => updateContent((c) => ({ ...c, skills }))}
           />
         );
       case 'education':
         return (
-          <TextSectionForm
-            title="Образование"
-            label="Учебные заведения и курсы"
-            value={content.education}
+          <EducationForm
+            entries={content.education}
             onChange={(education) => updateContent((c) => ({ ...c, education }))}
           />
         );
       case 'additional':
         return (
-          <TextSectionForm
-            title="Дополнительно"
-            label="Языки, сертификаты, публикации"
-            value={content.additional}
+          <AdditionalForm
+            entries={content.additional}
             onChange={(additional) => updateContent((c) => ({ ...c, additional }))}
           />
         );

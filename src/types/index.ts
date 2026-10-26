@@ -74,7 +74,45 @@ export interface ResumeContent {
   about: string;
   experience: ExperienceEntry[];
   projects: ProjectEntry[];
-  skills: string;
-  education: string;
-  additional: string;
+  skills: string[];
+  education: EducationEntry[];
+  additional: AdditionalEntry[];
+}
+
+export interface EducationEntry {
+  id: string;
+  institution: string;
+  specialty: string;
+  period: string;
+}
+
+export interface AdditionalEntry {
+  id: string;
+  title: string; // тип, язык, сертификат, публикация
+  description: string;
+}
+
+export type VacancyStatus = 'saved' | 'sent' | 'interview' | 'offer' | 'rejected';
+
+export interface Vacancy {
+  id: string;
+  company: string;
+  position: string;
+  resumeId: string | null;
+  resumeTitle: string | null; // BACKEND: название резюме лучше отдавать с сервера вместе с вакансией
+  nextStepDate: string | null; // YYYY-MM-DD
+  status: VacancyStatus;
+  description: string; // текст вакансии
+}
+
+export type VacancyInput = Omit<Vacancy, 'id'>;
+
+export interface RequirementMatch {
+  label: string;
+  matched: boolean; // true → «Есть в проекте», false → «Уточнить опыт»
+}
+
+export interface AdaptationResult {
+  requirements: RequirementMatch[];
+  advice: { projectName: string; text: string } | null;
 }
