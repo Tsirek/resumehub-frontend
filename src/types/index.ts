@@ -16,10 +16,10 @@ export interface Resume {
   id: string;
   title: string;
   status: ResumeStatus;
-  position: string | null; // null → «Должность не указана»
+  position: string | null; 
   projectsCount: number;
   workplacesCount: number;
-  updatedAt: string; // ISO-дата
+  updatedAt: string; 
 }
 
 export interface LoginPayload {
@@ -66,7 +66,7 @@ export interface ProjectEntry {
   name: string;
   technologies: string;
   contribution: string;
-  repoId?: string; // id репозитория Github, если проект импортирован
+  repoId?: string; 
 }
 
 export interface ResumeContent {
@@ -88,7 +88,7 @@ export interface EducationEntry {
 
 export interface AdditionalEntry {
   id: string;
-  title: string; // тип, язык, сертификат, публикация
+  title: string; 
   description: string;
 }
 
@@ -102,7 +102,7 @@ export interface Vacancy {
   resumeTitle: string | null; // BACKEND: название резюме лучше отдавать с сервера вместе с вакансией
   nextStepDate: string | null; // YYYY-MM-DD
   status: VacancyStatus;
-  description: string; // текст вакансии
+  description: string; 
 }
 
 export type VacancyInput = Omit<Vacancy, 'id'>;
@@ -115,4 +115,54 @@ export interface RequirementMatch {
 export interface AdaptationResult {
   requirements: RequirementMatch[];
   advice: { projectName: string; text: string } | null;
+}
+
+export type AnalysisStatus = 'PENDING' | 'ANALYZING' | 'AGGREGATING' | 'COMPLETED' | 'FAILED';
+
+export interface AnalysisRepository {
+  id: string;
+  name: string;
+  url: string; // https://github.com/username/name
+}
+
+export interface AnalysisError {
+  code: string;
+  stage: AnalysisStatus | null;
+  message: string;
+  retryable: boolean;
+}
+
+export interface RepositoryStats {
+  filesAnalyzed: number;
+  languages: number;
+  dependencies: number;
+  modules: number;
+}
+
+export interface RepositorySummary {
+  repositoryId: string;
+  summary: string;
+  technologies: string[];
+  commitSha: string;
+  contributionNote: string | null;
+  stats?: RepositoryStats; // BACKEND: нет в черновом контракте, нужно согласовать
+}
+
+export interface AnalysisResult {
+  summary: string;
+  skills: string[];
+  resumeBullets: string[];
+  repositorySummaries: RepositorySummary[];
+}
+
+export interface GithubAnalysis {
+  id: string;
+  status: AnalysisStatus;
+  repositories: AnalysisRepository[];
+  repositoriesCount: number;
+  repositoriesProcessed: number; 
+  createdAt: string; // ISO 8601 с часовым поясом
+  updatedAt: string;
+  result: AnalysisResult | null;
+  error: AnalysisError | null;
 }

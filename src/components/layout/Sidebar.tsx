@@ -1,5 +1,14 @@
 import { NavLink } from 'react-router';
-import { Briefcase, ExternalLink, FileText, LogOut, Star, User, type LucideIcon } from 'lucide-react';
+import {
+  Briefcase,
+  Clock,
+  ExternalLink,
+  FileText,
+  LogOut,
+  Star,
+  User,
+  type LucideIcon,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { cn, getInitials } from '../../lib/utils';
 import { ROUTES } from '../../router/paths';
@@ -11,6 +20,7 @@ const NAV_ITEMS: { to: string; label: string; icon: LucideIcon }[] = [
   { to: ROUTES.projects, label: 'Проекты', icon: ExternalLink },
   { to: ROUTES.adaptation, label: 'Адаптация', icon: Star },
   { to: ROUTES.responses, label: 'Отклики', icon: Briefcase },
+  { to: ROUTES.tasks, label: 'Фоновая задача', icon: Clock },
 ];
 
 export function Sidebar() {

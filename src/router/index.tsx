@@ -9,6 +9,7 @@ import ProfilePage from '../pages/dashboard/ProfilePage';
 import ResumesPage from '../pages/dashboard/ResumesPage';
 import ResumeDetailPage from '../pages/dashboard/ResumeDetailPage';
 import ProjectsPage from '../pages/dashboard/ProjectsPage';
+import BackgroundTasksPage from '../pages/dashboard/BackgroundTasksPage';
 import { VacanciesPage } from '../pages/dashboard/VacanciesPage';
 import { AdaptationPage } from '../pages/dashboard/AdaptationPage';
 import { ProtectedRoute } from './ProtectedRoute';
@@ -54,6 +55,11 @@ export const router = createBrowserRouter([
         path: ROUTES.projects,
         element: <ProjectsPage />,
         handle: { title: 'Проекты / Github' } satisfies RouteHandle,
+      },
+      {
+        path: ROUTES.tasks,
+        element: <BackgroundTasksPage />,
+        handle: { title: 'Проекты / Фоновые задачи' } satisfies RouteHandle,
       },
       {
         path: ROUTES.adaptation,

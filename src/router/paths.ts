@@ -7,6 +7,7 @@ export const ROUTES = {
   resumes: '/app/resumes',
   resumeDetail: '/app/resumes/:id',
   projects: '/app/projects',
+  tasks: '/app/tasks',
   adaptation: '/app/adaptation',
   responses: '/app/responses',
   vacancies: '/app/vacancies',

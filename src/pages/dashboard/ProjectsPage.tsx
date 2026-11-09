@@ -1,14 +1,17 @@
-import { useMemo, useState, type FormEvent } from 'react';
-import { ArrowRight, Plus } from 'lucide-react';
-import { fetchRepositories, importRepositories } from '../../api/github';
+import { useMemo, useRef, useState, type FormEvent } from 'react';
+import { Link } from 'react-router';
+import { ArrowRight, Star } from 'lucide-react';
+import { createAnalysis } from '../../api/analyses';
+import { fetchRepositories } from '../../api/github';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { RepositoryItem } from '../../components/projects/RepositoryItem';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { cn, parseGithubUsername, pluralize } from '../../lib/utils';
+import { ROUTES } from '../../router/paths';
 import type { Repository } from '../../types';
 
-interface ImportMessage {
+interface AnalyzeMessage {
   type: 'success' | 'error';
   text: string;
 }
@@ -18,12 +21,16 @@ export default function ProjectsPage() {
   const [urlError, setUrlError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [githubLogin, setGithubLogin] = useState('');
   const [repos, setRepos] = useState<Repository[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState('');
 
-  const [importing, setImporting] = useState(false);
-  const [importMessage, setImportMessage] = useState<ImportMessage | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [message, setMessage] = useState<AnalyzeMessage | null>(null);
+
+  // Один ключ на одну попытку запуска: если ответ потерялся, повторный клик не создаст вторую задачу
+  const idempotencyKey = useRef(crypto.randomUUID());
 
   // Поиск по названию, описанию и технологиям
   const filtered = useMemo(() => {
@@ -43,11 +50,12 @@ export default function ProjectsPage() {
     }
 
     setUrlError(null);
-    setImportMessage(null);
+    setMessage(null);
     setLoading(true);
     try {
       const list = await fetchRepositories(username); // BACKEND: GET /github/repos?username=...
       setRepos(list);
+      setGithubLogin(username);
       setSelected(new Set());
       setQuery('');
     } catch {
@@ -69,16 +77,29 @@ export default function ProjectsPage() {
   const selectAll = () => setSelected((prev) => new Set([...prev, ...filtered.map((r) => r.id)]));
   const clearSelection = () => setSelected(new Set());
 
-  const handleImport = async () => {
-    setImporting(true);
-    setImportMessage(null);
+  const handleAnalyze = async () => {
+    const chosen = repos?.filter((r) => selected.has(r.id)) ?? [];
+    if (chosen.length === 0) return;
+
+    setAnalyzing(true); // блокирует кнопку на время POST, чтобы не было двойного клика
+    setMessage(null);
     try {
-      await importRepositories([...selected]); // BACKEND: POST /projects/import
-      setImportMessage({ type: 'success', text: `Проектов добавлено: ${selected.size}` });
+      // BACKEND: POST /github/analyses — одна задача на весь набор, ответ 202 Accepted
+      await createAnalysis(
+        chosen.map((r) => ({
+          id: r.id,
+          name: r.name,
+          url: `https://github.com/${githubLogin}/${r.name}`,
+        })),
+        idempotencyKey.current,
+      );
+      idempotencyKey.current = crypto.randomUUID();
+      setSelected(new Set());
+      setMessage({ type: 'success', text: 'Анализ запущен. Статус смотрите в разделе' });
     } catch {
-      setImportMessage({ type: 'error', text: 'Не удалось импортировать проекты. Попробуйте ещё раз.' });
+      setMessage({ type: 'error', text: 'Не удалось запустить анализ. Попробуйте ещё раз.' });
     } finally {
-      setImporting(false);
+      setAnalyzing(false);
     }
   };
 
@@ -170,6 +191,29 @@ export default function ProjectsPage() {
                   </ul>
                 )}
 
+                {/* Переход в раздел фоновых задач */}
+                <Link
+                  to={ROUTES.tasks}
+                  className="mt-6 flex items-center gap-3 rounded-xl bg-primary-soft px-4 py-3 transition-colors hover:bg-primary-soft/70 focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  <span
+                    aria-hidden
+                    className="grid size-7 shrink-0 place-items-center rounded-md bg-white text-primary"
+                  >
+                    <Star className="size-4" />
+                  </span>
+                  <span className="rounded bg-white px-2 py-0.5 text-[11px] font-semibold text-primary">
+                    Готовится
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-ink">Фоновая задача</span>
+                    <span className="block text-xs text-muted">
+                      По завершении статус изменится на «Готово».
+                    </span>
+                  </span>
+                  <ArrowRight aria-hidden className="size-4 shrink-0 text-primary" />
+                </Link>
+
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
                   <div>
                     <p className="font-semibold text-ink">Выбрано: {selected.size}</p>
@@ -178,19 +222,24 @@ export default function ProjectsPage() {
                       aria-live="polite"
                       className={cn(
                         'mt-1 text-sm',
-                        importMessage?.type === 'error' ? 'text-red-600' : 'text-success',
+                        message?.type === 'error' ? 'text-red-600' : 'text-success',
                       )}
                     >
-                      {importMessage?.text}
+                      {message?.text}{' '}
+                      {message?.type === 'success' && (
+                        <Link to={ROUTES.tasks} className="font-medium underline">
+                          «Фоновые задачи»
+                        </Link>
+                      )}
                     </p>
                   </div>
                   <Button
                     size="lg"
-                    onClick={handleImport}
-                    loading={importing}
+                    onClick={handleAnalyze}
+                    loading={analyzing}
                     disabled={selected.size === 0}
                   >
-                    <Plus aria-hidden className="size-4" /> Импортировать выбранные
+                    Обработать выбранные
                   </Button>
                 </div>
               </>
