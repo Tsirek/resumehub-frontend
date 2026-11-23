@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
 import { errorMessage } from "../../api/client";
 import {
   getReportJob,
@@ -8,19 +7,24 @@ import {
   listReportJobs,
   type ReportJob,
 } from "../../api/reports";
-import { PageHeader } from "../../components/layout/PageHeader";
-import { Button } from "../../components/ui/Button";
-import { ROUTES } from "../../router/paths";
+import type { ProjectsTab } from "../../router/paths";
+import { Button } from "../ui/Button";
 
-export default function BackgroundTasksPage() {
+interface TasksTabProps {
+  onOpenTab: (tab: ProjectsTab) => void;
+}
+
+export function TasksTab({ onOpenTab }: TasksTabProps) {
   const [items, setItems] = useState<ReportJob[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [moreLoading, setMoreLoading] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+
   useEffect(() => {
     const controller = new AbortController();
+    // BACKEND: GET /api/v1/github/report-jobs?limit=20 (курсорная пагинация)
     listReportJobs(undefined, controller.signal)
       .then((page) => {
         if (controller.signal.aborted) return;
@@ -36,6 +40,7 @@ export default function BackgroundTasksPage() {
       });
     return () => controller.abort();
   }, [reloadKey]);
+
   // Отслеживаем статусы всех загруженных задач, включая задачи на старых страницах.
   const activeIds = items
     .filter(isActiveJob)
@@ -48,6 +53,7 @@ export default function BackgroundTasksPage() {
     let timer: ReturnType<typeof setTimeout>;
     let delay = 4000;
     const tick = async () => {
+      // BACKEND: GET /api/v1/github/report-jobs/{id}. Опрос каждые ~4 с, при ошибке интервал растёт до 30 с
       const results = await Promise.allSettled(
         activeIds.split(",").map(getReportJob),
       );
@@ -73,6 +79,7 @@ export default function BackgroundTasksPage() {
       clearTimeout(timer);
     };
   }, [activeIds]);
+
   useEffect(() => {
     const visible = () => {
       if (document.visibilityState === "visible")
@@ -81,6 +88,7 @@ export default function BackgroundTasksPage() {
     document.addEventListener("visibilitychange", visible);
     return () => document.removeEventListener("visibilitychange", visible);
   }, []);
+
   const more = async () => {
     if (!cursor) return;
     setMoreLoading(true);
@@ -99,12 +107,13 @@ export default function BackgroundTasksPage() {
       setMoreLoading(false);
     }
   };
+
   return (
     <>
-      <PageHeader
-        title="Фоновые задачи"
-        subtitle="Попытки обновления общего отчёта. Задачи не создают архив отдельных отчётов."
-      />
+      <p className="mb-5 text-sm text-muted">
+        Попытки обновления общего отчёта. Задачи не создают архив отдельных
+        отчётов.
+      </p>
       {error && (
         <div role="alert" className="mb-5">
           <p className="mb-3 text-red-600">{error}</p>
@@ -126,12 +135,13 @@ export default function BackgroundTasksPage() {
           {!items.length && !error && (
             <section className="rounded-2xl border border-line bg-white p-8">
               <h2 className="text-xl font-semibold">Задач пока нет</h2>
-              <Link
-                className="mt-4 inline-block text-primary underline"
-                to={ROUTES.projects}
+              <button
+                type="button"
+                className="mt-4 inline-block cursor-pointer text-primary underline"
+                onClick={() => onOpenTab("repositories")}
               >
                 Выбрать репозитории
-              </Link>
+              </button>
             </section>
           )}
           {items.map((job) => (
@@ -185,24 +195,26 @@ export default function BackgroundTasksPage() {
               )}
               {job.status === "completed" && (
                 <p className="mt-4 text-sm text-muted">
-                  Генерация завершена. В разделе «Мой отчёт» доступен последний
+                  Генерация завершена. На вкладке «Мой отчёт» доступен последний
                   сохранённый результат.
                 </p>
               )}
               <div className="mt-5 flex flex-wrap gap-5">
-                <Link
-                  to={ROUTES.report}
-                  className="text-sm font-medium text-primary underline"
+                <button
+                  type="button"
+                  onClick={() => onOpenTab("report")}
+                  className="cursor-pointer text-sm font-medium text-primary underline"
                 >
                   Мой общий отчёт
-                </Link>
+                </button>
                 {!isActiveJob(job) && (
-                  <Link
-                    to={ROUTES.projects}
-                    className="text-sm text-primary underline"
+                  <button
+                    type="button"
+                    onClick={() => onOpenTab("repositories")}
+                    className="cursor-pointer text-sm text-primary underline"
                   >
                     Изменить выбор и перегенерировать
-                  </Link>
+                  </button>
                 )}
               </div>
             </article>

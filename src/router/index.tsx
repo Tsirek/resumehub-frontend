@@ -9,12 +9,10 @@ import ProfilePage from "../pages/dashboard/ProfilePage";
 import ResumesPage from "../pages/dashboard/ResumesPage";
 import ResumeDetailPage from "../pages/dashboard/ResumeDetailPage";
 import ProjectsPage from "../pages/dashboard/ProjectsPage";
-import ReportPage from "../pages/dashboard/ReportPage";
-import BackgroundTasksPage from "../pages/dashboard/BackgroundTasksPage";
 import { VacanciesPage } from "../pages/dashboard/VacanciesPage";
 import { AdaptationPage } from "../pages/dashboard/AdaptationPage";
 import { ProtectedRoute } from "./ProtectedRoute";
-import { ROUTES, type RouteHandle } from "./paths";
+import { ROUTES, projectsTabPath, type RouteHandle } from "./paths";
 
 export const router = createBrowserRouter([
   { path: ROUTES.home, element: <LandingPage /> },
@@ -59,13 +57,11 @@ export const router = createBrowserRouter([
       },
       {
         path: ROUTES.report,
-        element: <ReportPage />,
-        handle: { title: "Проекты / Мой отчёт" } satisfies RouteHandle,
+        element: <Navigate to={projectsTabPath("report")} replace />,
       },
       {
         path: ROUTES.tasks,
-        element: <BackgroundTasksPage />,
-        handle: { title: "Проекты / Фоновые задачи" } satisfies RouteHandle,
+        element: <Navigate to={projectsTabPath("tasks")} replace />,
       },
       {
         path: ROUTES.adaptation,

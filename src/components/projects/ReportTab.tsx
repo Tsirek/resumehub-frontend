@@ -1,36 +1,22 @@
-import { Link } from "react-router";
 import { FileText } from "lucide-react";
 import { isActiveJob, jobStatusText } from "../../api/reports";
-import { PageHeader } from "../../components/layout/PageHeader";
-import { Button } from "../../components/ui/Button";
-import { useReportWorkspace } from "../../hooks/useReportWorkspace";
-import { ROUTES } from "../../router/paths";
+import type { ProjectsTab } from "../../router/paths";
+import type { Workspace } from "./projectsSection";
 
-export default function ReportPage() {
-  const { data, error, reload } = useReportWorkspace();
-  if (!data)
-    return (
-      <div>
-        {error ? (
-          <>
-            <p role="alert" className="text-red-600">
-              {error}
-            </p>
-            <Button onClick={() => void reload()}>Повторить</Button>
-          </>
-        ) : (
-          <p>Загрузка отчёта…</p>
-        )}
-      </div>
-    );
-  const { report, library } = data;
+interface ReportTabProps {
+  workspace: Workspace;
+  error: string | null;
+  onOpenTab: (tab: ProjectsTab) => void;
+}
+
+export function ReportTab({
+  workspace: { report, library },
+  error,
+  onOpenTab,
+}: ReportTabProps) {
   const active = isActiveJob(report.latest_job);
   return (
     <>
-      <PageHeader
-        title="Мой отчёт"
-        subtitle="Единственный сохранённый общий отчёт по выбранным GitHub-проектам."
-      />
       {error && (
         <p role="alert" className="mb-4 text-red-600">
           Статус временно недоступен: {error}
@@ -44,9 +30,13 @@ export default function ReportPage() {
             {report.report_text
               ? "Ниже доступен предыдущий отчёт."
               : "Результат появится после завершения."}{" "}
-            <Link className="underline" to={ROUTES.tasks}>
+            <button
+              type="button"
+              className="cursor-pointer underline"
+              onClick={() => onOpenTab("tasks")}
+            >
               Открыть задачу
-            </Link>
+            </button>
           </p>
         </div>
       )}
@@ -109,12 +99,13 @@ export default function ReportPage() {
         </section>
       )}
       <div className="mt-5 flex flex-wrap items-center gap-4">
-        <Link
-          className="font-medium text-primary underline"
-          to={ROUTES.projects}
+        <button
+          type="button"
+          className="cursor-pointer font-medium text-primary underline"
+          onClick={() => onOpenTab("repositories")}
         >
           Изменить состав проектов
-        </Link>
+        </button>
         <span className="text-xs text-muted">
           Новая успешная генерация заменит сохранённый отчёт.
         </span>

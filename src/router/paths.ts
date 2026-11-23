@@ -14,7 +14,11 @@ export const ROUTES = {
   vacancies: "/app/vacancies",
 } as const;
 
-/** Путь к конкретному резюме: /app/resumes/42 */
+export type ProjectsTab = "repositories" | "report" | "tasks";
+
+export const projectsTabPath = (tab: ProjectsTab) =>
+  tab === "repositories" ? ROUTES.projects : `${ROUTES.projects}?tab=${tab}`;
+
 export const resumePath = (id: string) => `${ROUTES.resumes}/${id}`;
 
 /** handle маршрута: заголовок для верхней панели кабинета */

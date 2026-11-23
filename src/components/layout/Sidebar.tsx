@@ -2,7 +2,6 @@ import { CoreModeNotice } from "./CoreModeNotice";
 import { NavLink } from "react-router";
 import {
   Briefcase,
-  Clock,
   ExternalLink,
   FileText,
   LogOut,
@@ -14,13 +13,12 @@ import { cn, getInitials } from "../../lib/utils";
 import { ROUTES } from "../../router/paths";
 import { Logo } from "../ui/Logo";
 
+// «Мой отчёт» и «Фоновые задачи» теперь вкладки внутри «Проекты»
 const NAV_ITEMS: { to: string; label: string; icon: LucideIcon }[] = [
   { to: ROUTES.profile, label: "Мой Профиль", icon: User },
   { to: ROUTES.resumes, label: "Резюме", icon: FileText },
   { to: ROUTES.projects, label: "Проекты", icon: ExternalLink },
-  { to: ROUTES.report, label: "Мой отчёт", icon: FileText },
   { to: ROUTES.responses, label: "Отклики", icon: Briefcase },
-  { to: ROUTES.tasks, label: "Фоновые задачи", icon: Clock },
 ];
 
 export function Sidebar() {
