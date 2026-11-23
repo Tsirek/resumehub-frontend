@@ -59,7 +59,7 @@ export function EducationForm({ entries, onChange }: EducationFormProps) {
               />
             </div>
 
-            {entries.length > 1 && (
+            {entries.length > 0 && (
               <Button
                 type="button"
                 variant="secondary"

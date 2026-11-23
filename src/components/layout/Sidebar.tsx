@@ -1,45 +1,50 @@
-import { NavLink } from 'react-router';
+import { CoreModeNotice } from "./CoreModeNotice";
+import { NavLink } from "react-router";
 import {
   Briefcase,
   Clock,
   ExternalLink,
   FileText,
   LogOut,
-  Star,
   User,
   type LucideIcon,
-} from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { cn, getInitials } from '../../lib/utils';
-import { ROUTES } from '../../router/paths';
-import { Logo } from '../ui/Logo';
+} from "lucide-react";
+import { useAuth } from "../../hooks/useAuth";
+import { cn, getInitials } from "../../lib/utils";
+import { ROUTES } from "../../router/paths";
+import { Logo } from "../ui/Logo";
 
 const NAV_ITEMS: { to: string; label: string; icon: LucideIcon }[] = [
-  { to: ROUTES.profile, label: 'Мой Профиль', icon: User },
-  { to: ROUTES.resumes, label: 'Резюме', icon: FileText },
-  { to: ROUTES.projects, label: 'Проекты', icon: ExternalLink },
-  { to: ROUTES.adaptation, label: 'Адаптация', icon: Star },
-  { to: ROUTES.responses, label: 'Отклики', icon: Briefcase },
-  { to: ROUTES.tasks, label: 'Фоновая задача', icon: Clock },
+  { to: ROUTES.profile, label: "Мой Профиль", icon: User },
+  { to: ROUTES.resumes, label: "Резюме", icon: FileText },
+  { to: ROUTES.projects, label: "Проекты", icon: ExternalLink },
+  { to: ROUTES.report, label: "Мой отчёт", icon: FileText },
+  { to: ROUTES.responses, label: "Отклики", icon: Briefcase },
+  { to: ROUTES.tasks, label: "Фоновые задачи", icon: Clock },
 ];
 
 export function Sidebar() {
-  const { user, logout } = useAuth();
-  const name = user?.name ?? 'Пользователь';
+  const { user, profileName, logout } = useAuth();
+  const name = profileName ?? user?.name ?? "Пользователь";
 
   return (
     <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-white px-8 py-9">
       <Logo to={ROUTES.profile} />
 
-      <nav aria-label="Основная навигация" className="mt-10 flex flex-col gap-3">
+      <nav
+        aria-label="Основная навигация"
+        className="mt-10 flex flex-col gap-3"
+      >
         {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium transition-colors -mx-4',
-                isActive ? 'bg-primary-soft text-primary' : 'text-muted hover:bg-field hover:text-ink',
+                "flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium transition-colors -mx-4",
+                isActive
+                  ? "bg-primary-soft text-primary"
+                  : "text-muted hover:bg-field hover:text-ink",
               )
             }
           >
@@ -49,6 +54,7 @@ export function Sidebar() {
         ))}
       </nav>
 
+      <CoreModeNotice />
       <div className="mt-auto border-t border-line pt-5">
         <div className="flex items-center gap-3">
           <span className="flex size-13 shrink-0 items-center justify-center rounded-full bg-primary-soft text-lg font-semibold text-primary">

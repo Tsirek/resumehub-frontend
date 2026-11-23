@@ -48,7 +48,7 @@ export function AdditionalForm({ entries, onChange }: AdditionalFormProps) {
               />
             </div>
 
-            {entries.length > 1 && (
+            {entries.length > 0 && (
               <Button
                 type="button"
                 variant="secondary"

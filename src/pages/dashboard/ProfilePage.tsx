@@ -1,113 +1,157 @@
-import { useEffect, useState, type ChangeEvent } from 'react';
-import { useNavigate } from 'react-router';
-import { Star } from 'lucide-react';
-import { getProfile, improveAboutWithAI, updateProfile } from '../../api/profile';
-import { PageHeader } from '../../components/layout/PageHeader';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { Textarea } from '../../components/ui/Textarea';
-import { ROUTES } from '../../router/paths';
-import type { Profile } from '../../types';
+import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router";
+import { getProfile, updateProfile } from "../../api/profile";
+import { errorMessage } from "../../api/client";
+import { PageHeader } from "../../components/layout/PageHeader";
+import { Button } from "../../components/ui/Button";
+import { Input } from "../../components/ui/Input";
+import { Textarea } from "../../components/ui/Textarea";
+import { useAuth } from "../../hooks/useAuth";
+import { ROUTES } from "../../router/paths";
+import type { Profile } from "../../types";
 
-type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
-
-const STATUS_TEXT: Record<SaveStatus, string> = {
-  idle: '',
-  saving: 'Сохраняем…',
-  saved: 'Сохранено',
-  error: 'Не удалось сохранить',
-};
+type SaveStatus = "idle" | "saving" | "saved";
 
 export default function ProfilePage() {
-  const navigate = useNavigate();
+  const { user, updateProfileName } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loadError, setLoadError] = useState(false);
-  const [status, setStatus] = useState<SaveStatus>('idle');
-  const [aiLoading, setAiLoading] = useState(false);
-
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  const [reloadKey, setReloadKey] = useState(0);
+  const userName = user?.name ?? "";
   useEffect(() => {
-    let cancelled = false;
-    getProfile() // BACKEND: GET /profile
-      .then((data) => !cancelled && setProfile(data))
-      .catch(() => !cancelled && setLoadError(true));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    const controller = new AbortController();
+    getProfile(controller.signal)
+      .then((saved) => {
+        if (controller.signal.aborted) return;
+        setProfile(
+          saved ?? { fullName: userName, specialization: "", about: "" },
+        );
+        setLoadError(null);
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) setLoadError(errorMessage(error));
+      });
+    return () => controller.abort();
+  }, [userName, reloadKey]);
 
-  if (loadError) return <p role="alert" className="text-red-600">Не удалось загрузить профиль</p>;
-  if (!profile) return <p className="text-muted">Загрузка…</p>;
+  if (loadError)
+    return (
+      <div role="alert">
+        <p className="mb-4 text-red-600">
+          Не удалось загрузить профиль: {loadError}
+        </p>
+        <Button onClick={() => setReloadKey((key) => key + 1)}>
+          Повторить
+        </Button>
+      </div>
+    );
+  if (!profile) return <p className="text-muted">Загрузка профиля…</p>;
 
-  const handleChange =
-    (field: keyof Profile) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setProfile((prev) => (prev ? { ...prev, [field]: e.target.value } : prev));
-
-  // Сохранение при потере фокуса поля, чтобы не добавлять кнопку, которой нет в макете
-  const save = async (data: Profile) => {
-    setStatus('saving');
+  const change = (field: keyof Profile, value: string) => {
+    setProfile((previous) =>
+      previous ? { ...previous, [field]: value } : previous,
+    );
+    setStatus("idle");
+    setSaveError(null);
+  };
+  const save = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (status === "saving") return;
+    if (!profile.fullName.trim()) {
+      setSaveError("Укажите имя и фамилию.");
+      return;
+    }
+    setStatus("saving");
+    setSaveError(null);
     try {
-      await updateProfile(data); // BACKEND: PUT /profile
-      setStatus('saved');
-    } catch {
-      setStatus('error');
+      const saved = await updateProfile(profile);
+      setProfile(saved);
+      updateProfileName(saved.fullName);
+      setStatus("saved");
+    } catch (error) {
+      setStatus("idle");
+      setSaveError(errorMessage(error));
     }
   };
-
-  const handleImprove = async () => {
-    setAiLoading(true);
-    try {
-      const about = await improveAboutWithAI(profile.about); // BACKEND: POST /ai/improve-about
-      const next = { ...profile, about };
-      setProfile(next);
-      await save(next);
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
   return (
     <>
       <PageHeader
         title="Ваш опыт — в одном месте"
-        subtitle="В макете редактор и профиль используют общие демонстрационные данные"
+        subtitle="Укажите имя, специализацию и описание опыта. Сохранённый профиль останется доступен после перезагрузки."
       />
-
-      <section className="rounded-2xl bg-white p-10">
-        <div className="grid gap-x-16 gap-y-6 md:grid-cols-2">
-          <Input variant="outlined" label="Имя и фамилия" value={profile.fullName}
-            onChange={handleChange('fullName')} onBlur={() => save(profile)} />
-          <Input variant="outlined" label="Специализация" value={profile.specialization}
-            onChange={handleChange('specialization')} onBlur={() => save(profile)} />
-        </div>
-
-        <div className="mt-6">
-          <Textarea label="О себе" rows={6} value={profile.about}
-            onChange={handleChange('about')} onBlur={() => save(profile)} />
-        </div>
-
-        <div className="mt-6 flex items-center gap-4">
-          <Button onClick={handleImprove} loading={aiLoading} className="rounded-sm">
-            <Star aria-hidden className="size-5" /> Проработать с ИИ
-          </Button>
-          <span aria-live="polite" className="text-sm text-muted">
-            {STATUS_TEXT[status]}
-          </span>
-        </div>
-
-        <div className="mt-4 divide-y-2 divide-line">
-          <div className="flex items-center justify-between py-3">
-            <span className="text-sm font-medium text-ink">Проекты Github</span>
-            {/* BACKEND: в будущем — выбор репозиториев через GitHub OAuth */}
-            <Button variant="secondary" size="sm" onClick={() => navigate(ROUTES.projects)}>
-              Выбрать проекты
+      <section className="rounded-2xl border border-line bg-white p-6 sm:p-10">
+        <form onSubmit={save}>
+          <fieldset disabled={status === "saving"}>
+            <div className="grid gap-x-12 gap-y-6 md:grid-cols-2">
+              <Input
+                variant="outlined"
+                label="Имя и фамилия"
+                autoComplete="name"
+                required
+                maxLength={100}
+                value={profile.fullName}
+                onChange={(event) => change("fullName", event.target.value)}
+              />
+              <Input
+                variant="outlined"
+                label="Специализация"
+                maxLength={255}
+                value={profile.specialization}
+                onChange={(event) =>
+                  change("specialization", event.target.value)
+                }
+              />
+            </div>
+            <div className="mt-6">
+              <Textarea
+                label="О себе"
+                rows={6}
+                maxLength={2000}
+                value={profile.about}
+                onChange={(event) => change("about", event.target.value)}
+              />
+            </div>
+          </fieldset>
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <Button type="submit" loading={status === "saving"}>
+              Сохранить профиль
             </Button>
+            <span
+              role="status"
+              aria-live="polite"
+              className="text-sm text-muted"
+            >
+              {status === "saved"
+                ? "Профиль сохранён"
+                : status === "saving"
+                  ? "Сохраняем…"
+                  : "Изменения сохраняются по кнопке"}
+            </span>
           </div>
-          <div className="flex items-center justify-between py-3">
-            <span className="text-sm font-medium text-ink">Полный редактор</span>
-            <Button variant="secondary" size="sm" onClick={() => navigate(ROUTES.resumes)}>
-              Открыть резюме
-            </Button>
-          </div>
+          {saveError && (
+            <p role="alert" className="mt-4 text-sm text-red-600">
+              {saveError}
+            </p>
+          )}
+        </form>
+        <p className="mt-5 text-xs text-muted">
+          AI-редактор описания пока недоступен.
+        </p>
+        <div className="mt-7 flex flex-wrap gap-6 border-t border-line pt-5">
+          <Link
+            to={ROUTES.projects}
+            className="font-medium text-primary underline"
+          >
+            Выбрать GitHub-проекты
+          </Link>
+          <Link
+            to={ROUTES.resumes}
+            className="font-medium text-primary underline"
+          >
+            Открыть резюме
+          </Link>
         </div>
       </section>
     </>

@@ -1,3 +1,4 @@
+import { errorMessage } from '../../api/client';
 import { useState, type FormEvent } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -53,8 +54,8 @@ function NameForm({ initialTitle, submitLabel, onSubmit, onCancel }: NameFormPro
     setLoading(true);
     try {
       await onSubmit(trimmed);
-    } catch {
-      setError('Не удалось сохранить. Попробуйте ещё раз.');
+    } catch (error) {
+      setError(errorMessage(error));
     } finally {
       setLoading(false);
     }

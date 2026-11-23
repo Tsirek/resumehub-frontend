@@ -1,6 +1,6 @@
-import { Link } from 'react-router';
-import { buttonClasses } from '../components/ui/Button';
-import { ROUTES } from '../router/paths';
+import { Link } from "react-router";
+import { buttonClasses } from "../components/ui/buttonStyles";
+import { ROUTES } from "../router/paths";
 
 export default function NotFoundPage() {
   return (

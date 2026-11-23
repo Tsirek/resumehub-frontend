@@ -1,5 +1,5 @@
-import { useId } from 'react';
-import { fieldClass } from './fieldStyles';
+import { useId } from "react";
+import { fieldClass } from "./fieldStyles";
 
 export interface SelectOption<T extends string> {
   value: T;
@@ -12,6 +12,7 @@ interface SelectProps<T extends string> {
   options: SelectOption<T>[];
   onChange: (value: T) => void;
   className?: string;
+  disabled?: boolean;
 }
 
 export function Select<T extends string>({
@@ -19,7 +20,8 @@ export function Select<T extends string>({
   value,
   options,
   onChange,
-  className = '',
+  className = "",
+  disabled = false,
 }: SelectProps<T>) {
   const id = useId();
 
@@ -31,6 +33,7 @@ export function Select<T extends string>({
       <div className="relative">
         <select
           id={id}
+          disabled={disabled}
           value={value}
           onChange={(e) => onChange(e.target.value as T)}
           className={`${fieldClass} appearance-none py-2 pr-10`}

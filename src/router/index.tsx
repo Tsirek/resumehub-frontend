@@ -1,19 +1,20 @@
-import { createBrowserRouter, Navigate } from 'react-router';
-import { AuthLayout } from '../components/layout/AuthLayout';
-import { DashboardLayout } from '../components/layout/DashboardLayout';
-import LandingPage from '../pages/LandingPage';
-import LoginPage from '../pages/LoginPage';
-import RegisterPage from '../pages/RegisterPage';
-import NotFoundPage from '../pages/NotFoundPage';
-import ProfilePage from '../pages/dashboard/ProfilePage';
-import ResumesPage from '../pages/dashboard/ResumesPage';
-import ResumeDetailPage from '../pages/dashboard/ResumeDetailPage';
-import ProjectsPage from '../pages/dashboard/ProjectsPage';
-import BackgroundTasksPage from '../pages/dashboard/BackgroundTasksPage';
-import { VacanciesPage } from '../pages/dashboard/VacanciesPage';
-import { AdaptationPage } from '../pages/dashboard/AdaptationPage';
-import { ProtectedRoute } from './ProtectedRoute';
-import { ROUTES, type RouteHandle } from './paths';
+import { createBrowserRouter, Navigate } from "react-router";
+import { AuthLayout } from "../components/layout/AuthLayout";
+import { DashboardLayout } from "../components/layout/DashboardLayout";
+import LandingPage from "../pages/LandingPage";
+import LoginPage from "../pages/LoginPage";
+import RegisterPage from "../pages/RegisterPage";
+import NotFoundPage from "../pages/NotFoundPage";
+import ProfilePage from "../pages/dashboard/ProfilePage";
+import ResumesPage from "../pages/dashboard/ResumesPage";
+import ResumeDetailPage from "../pages/dashboard/ResumeDetailPage";
+import ProjectsPage from "../pages/dashboard/ProjectsPage";
+import ReportPage from "../pages/dashboard/ReportPage";
+import BackgroundTasksPage from "../pages/dashboard/BackgroundTasksPage";
+import { VacanciesPage } from "../pages/dashboard/VacanciesPage";
+import { AdaptationPage } from "../pages/dashboard/AdaptationPage";
+import { ProtectedRoute } from "./ProtectedRoute";
+import { ROUTES, type RouteHandle } from "./paths";
 
 export const router = createBrowserRouter([
   { path: ROUTES.home, element: <LandingPage /> },
@@ -34,45 +35,50 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <Navigate to={ROUTES.profile} replace /> },
+      { index: true, element: <Navigate to={ROUTES.projects} replace /> },
       {
         path: ROUTES.profile,
         element: <ProfilePage />,
-        handle: { title: 'Карьерный профиль' } satisfies RouteHandle,
+        handle: { title: "Карьерный профиль" } satisfies RouteHandle,
       },
       {
         path: ROUTES.resumes,
         element: <ResumesPage />,
-        handle: { title: 'Резюме / Все резюме' } satisfies RouteHandle,
+        handle: { title: "Резюме / Все резюме" } satisfies RouteHandle,
       },
       {
         path: ROUTES.resumeDetail,
         element: <ResumeDetailPage />,
         // Запасной заголовок; после загрузки страница подставит «Резюме / <название>»
-        handle: { title: 'Резюме' } satisfies RouteHandle,
+        handle: { title: "Резюме" } satisfies RouteHandle,
       },
       {
         path: ROUTES.projects,
         element: <ProjectsPage />,
-        handle: { title: 'Проекты / Github' } satisfies RouteHandle,
+        handle: { title: "Проекты / Github" } satisfies RouteHandle,
+      },
+      {
+        path: ROUTES.report,
+        element: <ReportPage />,
+        handle: { title: "Проекты / Мой отчёт" } satisfies RouteHandle,
       },
       {
         path: ROUTES.tasks,
         element: <BackgroundTasksPage />,
-        handle: { title: 'Проекты / Фоновые задачи' } satisfies RouteHandle,
+        handle: { title: "Проекты / Фоновые задачи" } satisfies RouteHandle,
       },
       {
         path: ROUTES.adaptation,
         element: <AdaptationPage />,
-        handle: { title: 'Адаптация' } satisfies RouteHandle,
+        handle: { title: "Адаптация" } satisfies RouteHandle,
       },
       {
         path: ROUTES.responses,
         element: <VacanciesPage />,
-        handle: { title: 'Отклики' } satisfies RouteHandle,
+        handle: { title: "Отклики" } satisfies RouteHandle,
       },
     ],
   },
 
-  { path: '*', element: <NotFoundPage /> },
+  { path: "*", element: <NotFoundPage /> },
 ]);

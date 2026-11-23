@@ -1,75 +1,84 @@
-# React + TypeScript + Vite
+# ResumeHub — фронтенд
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript + Vite. Подключены реальные регистрация, вход, refresh/logout
+и сценарий GitHub: выбор проектов → фоновая генерация → один общий отчёт.
+Раздел «Отклики» также подключён к реальному API: вакансии, статусы, заметки,
+даты следующего действия и неизменяемые снимки своих сохранённых резюме.
 
-Currently, two official plugins are available:
+## Локальный запуск с заглушкой Core
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Сначала из каталога бэкенда `PP-AUT-2026`:
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+docker compose -f docker-compose.demo.yml up --build -d
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+Затем в этом каталоге:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm ci
+npm run dev
 ```
+
+Откройте <http://127.0.0.1:5173/app/projects>, создайте аккаунт в локальной базе,
+введите ссылку на публичный GitHub-профиль, выберите проекты и запустите генерацию.
+Vite проксирует `/api` на `http://127.0.0.1:8000`; по умолчанию используется
+`/api/v1`. Для другого адреса задайте `VITE_API_URL` по `.env.example`.
+
+GitHub работает реально, Core заменён отдельным потребителем RabbitMQ с задержкой
+8 секунд. Каждый результат явно помечен как демонстрационный: анализа кода нет.
+База и очереди демонстрационной среды отделены от обычного Compose бэкенда.
+
+## Экраны
+
+- **Проекты**: библиотека и поиск публичных репозиториев, выбор до 20 проектов,
+  подтверждение генерации. Снятие галочки не удаляет проект или его кеш.
+- **Мой отчёт**: единственный сохранённый общий текст. При перегенерации или ошибке
+  предыдущий результат остаётся виден с пояснением.
+- **Фоновые задачи**: список попыток с пагинацией и опросом реальных статусов.
+  Архива независимых общих отчётов, вымышленных процентов и переноса в резюме нет.
+
+Кеш и проверку SHA выполняет бэкенд. Роль и даты участия необязательны.
+Авторизация использует access и refresh, поддерживает ротацию refresh; для
+«Запомнить меня» используется localStorage, иначе sessionStorage.
+
+Редактор резюме подключён к серверу. Автоматическая адаптация под вакансию пока
+недоступна; прежние фиктивные результаты удалены.
+
+## Проверки
+
+```bash
+npm run build
+npm run lint
+npm test
+```
+
+Подробный сценарий, переключение заглушки на ошибку и остановка окружения описаны
+в бэкенде: `docs/local-frontend-demo.md`.
+
+Отклики доступны на `/app/responses`; новый аккаунт начинает с пустого списка.
+Снимки прикрепляются из реальных резюме бэкенда, а не из демонстрационного массива
+редактора. Подробный контракт: `docs/vacancies.md` в бэкенде.
+
+Профиль использует `/users/me/profile`: имя, специализация и «О себе» сохраняются
+по кнопке «Сохранить профиль». Если профиля ещё нет, форма берёт имя регистрации
+и пустые остальные поля. Сохранённое имя показывается и в боковой панели;
+AI-редактор пока недоступен.
+
+
+## Интеграция MVP, 9 ноября 2026
+
+Профиль, CRUD резюме, все разделы редактора, библиотека GitHub, задания и отчёт,
+отклики и снимки резюме подключены к API. PDF скачивается с бэкенда после сохранения.
+Автосохранение последовательно; локальный черновик восстанавливается после сбоя,
+ETag/If-Match защищает от перезаписи изменений другой вкладки.
+Адаптация под вакансию пока недоступна, старые фиктивные результаты удалены.
+В demo Compose используется только явно помеченный тестовый Core.
+
+Проверки: `npm test`, `npm run lint`, `npm run build`.
+
+
+В редакторе доступны «О себе → Использовать анализ» и «Проекты → Из сохранённого
+анализа». Данные читаются из /github/report и /github/library; пользователь проверяет
+и редактирует черновик перед применением. Повторный перенос проекта обновляет запись
+по repoId без дублей. Тестовый Core и старые результаты явно помечены.

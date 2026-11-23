@@ -109,7 +109,7 @@ export default function ResumesPage() {
             <ResumeCard
               key={resume.id}
               resume={resume}
-              busy={busyId === resume.id}
+              busy={busyId !== null}
               onRename={(r) => setDialog({ mode: 'rename', resume: r })}
               onDuplicate={handleDuplicate}
               onDelete={handleDelete}

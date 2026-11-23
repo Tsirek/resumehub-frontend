@@ -1,11 +1,11 @@
-import { Link } from 'react-router';
-import { ArrowRight, Star } from 'lucide-react';
-import { ResumePreview } from '../components/landing/ResumePreview';
-import { buttonClasses } from '../components/ui/Button';
-import { Logo } from '../components/ui/Logo';
-import { useAuth } from '../context/AuthContext';
-import { cn } from '../lib/utils';
-import { ROUTES } from '../router/paths';
+import { Link } from "react-router";
+import { ArrowRight, Star } from "lucide-react";
+import { ResumePreview } from "../components/landing/ResumePreview";
+import { buttonClasses } from "../components/ui/buttonStyles";
+import { Logo } from "../components/ui/Logo";
+import { useAuth } from "../hooks/useAuth";
+import { cn } from "../lib/utils";
+import { ROUTES } from "../router/paths";
 
 export default function LandingPage() {
   const { isAuthenticated } = useAuth();
@@ -19,11 +19,11 @@ export default function LandingPage() {
           <nav className="flex items-center gap-5">
             <Link
               to={isAuthenticated ? ROUTES.profile : ROUTES.login}
-              className={buttonClasses({ variant: 'outline', size: 'lg' })}
+              className={buttonClasses({ variant: "outline", size: "lg" })}
             >
-              {isAuthenticated ? 'Кабинет' : 'Войти'}
+              {isAuthenticated ? "Кабинет" : "Войти"}
             </Link>
-            <Link to={ctaTo} className={buttonClasses({ size: 'lg' })}>
+            <Link to={ctaTo} className={buttonClasses({ size: "lg" })}>
               Создать резюме <ArrowRight aria-hidden className="size-5" />
             </Link>
           </nav>
@@ -34,20 +34,23 @@ export default function LandingPage() {
         <section>
           <span className="inline-flex items-center gap-2 rounded-xl bg-primary-soft px-3 py-2 font-medium text-primary">
             <Star aria-hidden className="size-5" />
-            ИИ, который понимает рекрутинг
+            Ваш опыт и проекты в одном месте
           </span>
 
           <h1 className="mt-6 text-5xl leading-tight text-black sm:text-6xl">
-            Сильное резюме за <span className="text-primary">15 минут</span>
+            Резюме, которое <span className="text-primary">рассказывает о вас</span>
           </h1>
 
           <p className="mt-6 max-w-lg text-lg text-muted">
-            ResumeHub превратит ваш опыт в убедительное профессиональное резюме — с точными формулировками,
-            сильными результатами и дизайном, который замечают.
+            Соберите опыт и GitHub-проекты, подготовьте резюме в PDF и ведите отклики. Формулировки и личный вклад остаются под вашим контролем.
           </p>
 
-          <Link to={ctaTo} className={cn(buttonClasses({ size: 'lg' }), 'mt-8 px-10')}>
-            Создать резюме бесплатно <ArrowRight aria-hidden className="size-5" />
+          <Link
+            to={ctaTo}
+            className={cn(buttonClasses({ size: "lg" }), "mt-8 px-10")}
+          >
+            Создать резюме бесплатно{" "}
+            <ArrowRight aria-hidden className="size-5" />
           </Link>
         </section>
 

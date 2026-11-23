@@ -1,3 +1,5 @@
+import { AnalysisImportDialog } from './AnalysisImportDialog';
+import { applyProjectAnalysis } from '../../lib/applyAnalysis';
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { createEmptyProject, isProjectEmpty } from '../../lib/resumeContent';
@@ -15,6 +17,7 @@ interface ProjectsFormProps {
 }
 
 export function ProjectsForm({ value, onChange }: ProjectsFormProps) {
+  const [analysisOpen, setAnalysisOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const update = (id: string, patch: Partial<ProjectEntry>) =>
@@ -45,6 +48,8 @@ export function ProjectsForm({ value, onChange }: ProjectsFormProps) {
         <Button size="sm" className="self-start" onClick={() => setPickerOpen(true)}>
           Выбрать из Github
         </Button>
+
+        <Button size="sm" variant="secondary" className="self-start" onClick={() => setAnalysisOpen(true)}>Из сохранённого анализа</Button>
 
         {value.map((entry, index) => (
           <div key={entry.id} className={cn('flex flex-col gap-5', index > 0 && 'border-t border-line pt-5')}>
@@ -93,6 +98,7 @@ export function ProjectsForm({ value, onChange }: ProjectsFormProps) {
         </Button>
       </SectionCard>
 
+      {analysisOpen && <AnalysisImportDialog mode="project" projects={value} onClose={() => setAnalysisOpen(false)} onApply={draft => { onChange(applyProjectAnalysis(value, draft)); setAnalysisOpen(false); }}/> }
       <GithubPickerDialog open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={handleImport} />
     </>
   );

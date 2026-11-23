@@ -1,7 +1,7 @@
-import { Link, Navigate, Outlet } from 'react-router';
-import { useAuth } from '../../context/AuthContext';
-import { ROUTES } from '../../router/paths';
-import { Logo } from '../ui/Logo';
+import { Link, Navigate, Outlet } from "react-router";
+import { useAuth } from "../../hooks/useAuth";
+import { ROUTES } from "../../router/paths";
+import { Logo } from "../ui/Logo";
 
 export function AuthLayout() {
   const { isAuthenticated } = useAuth();
@@ -13,7 +13,10 @@ export function AuthLayout() {
     <div className="flex min-h-screen flex-col bg-page">
       <header className="flex h-22 items-center justify-between border-b border-line bg-white px-7">
         <Logo />
-        <Link to={ROUTES.home} className="text-xl text-muted transition-colors hover:text-ink">
+        <Link
+          to={ROUTES.home}
+          className="text-xl text-muted transition-colors hover:text-ink"
+        >
           Главная страница
         </Link>
       </header>

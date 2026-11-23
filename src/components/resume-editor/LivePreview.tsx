@@ -3,6 +3,7 @@ import { isExperienceEmpty, isProjectEmpty } from '../../lib/resumeContent';
 import type { ResumeContent } from '../../types';
 
 function PreviewSection({ title, children }: { title: string; children?: ReactNode }) {
+  if (!children) return null;
   return (
     <div className="mt-6 first:mt-0">
       <h3 className="text-xs font-medium text-ink">{title}</h3>

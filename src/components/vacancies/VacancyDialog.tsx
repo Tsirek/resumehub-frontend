@@ -13,7 +13,6 @@ interface VacancyDialogProps {
   onSubmit: (input: VacancyInput) => Promise<void>;
 }
 
-/** «Текущее» резюме — то, что редактировалось последним. */
 function pickCurrentResume(resumes: Resume[]): Resume | null {
   let best: Resume | null = null;
   let bestTime = -Infinity;
@@ -56,7 +55,6 @@ function Field({ label, htmlFor, required, children }: FieldProps) {
   );
 }
 
-// Монтируйте компонент только когда диалог нужен: состояние формы сбрасывается при каждом открытии.
 export function VacancyDialog({ vacancy, resumes, onClose, onSubmit }: VacancyDialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const uid = useId();
@@ -70,7 +68,6 @@ export function VacancyDialog({ vacancy, resumes, onClose, onSubmit }: VacancyDi
   const [nextStepDate, setNextStepDate] = useState(vacancy?.nextStepDate ?? '');
   const [notes, setNotes] = useState(vacancy?.notes ?? '');
   const [status, setStatus] = useState<VacancyStatus>(vacancy?.status ?? 'saved');
-  // При создании чекбокс включён по умолчанию (как на макете), при правке — по текущему состоянию вакансии
   const [attachSnapshot, setAttachSnapshot] = useState(
     vacancy ? vacancy.resumeId !== null : currentResume !== null,
   );
@@ -112,8 +109,6 @@ export function VacancyDialog({ vacancy, resumes, onClose, onSubmit }: VacancyDi
     setSaving(true);
     setError(null);
     try {
-      // BACKEND: POST /vacancies или PUT /vacancies/:id.
-      // Снимок резюме сервер делает только если resumeId отличается от сохранённого ранее.
       await onSubmit({
         company: company.trim(),
         position: position.trim(),
@@ -137,7 +132,6 @@ export function VacancyDialog({ vacancy, resumes, onClose, onSubmit }: VacancyDi
       aria-labelledby={`${uid}-title`}
       onClose={onClose}
       onClick={(e) => {
-        // Клик по подложке закрывает диалог
         if (e.target === e.currentTarget) onClose();
       }}
       className="m-auto w-full max-w-xl rounded-2xl p-0 backdrop:bg-ink/40"

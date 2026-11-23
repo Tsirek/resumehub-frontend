@@ -1,99 +1,147 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router';
-import { ArrowLeft, Upload } from 'lucide-react';
-import { exportResumePdf, getResume, getResumeContent, saveResumeContent } from '../../api/resumes';
-import { AboutForm } from '../../components/resume-editor/AboutForm';
-import { AdditionalForm } from '../../components/resume-editor/AdditionalForm';
-import { ContactsForm } from '../../components/resume-editor/ContactsForm';
-import { EducationForm } from '../../components/resume-editor/EducationForm';
-import { ExperienceForm } from '../../components/resume-editor/ExperienceForm';
-import { LivePreview } from '../../components/resume-editor/LivePreview';
-import { ProjectsForm } from '../../components/resume-editor/ProjectsForm';
-import { SectionTabs } from '../../components/resume-editor/SectionTabs';
-import { SkillsForm } from '../../components/resume-editor/SkillsForm';
-import { SECTIONS, isSectionId, type SectionId } from '../../components/resume-editor/sections';
-import { Button, buttonClasses } from '../../components/ui/Button';
-import { usePageTitle } from '../../hooks/usePageTitle';
-import { ROUTES } from '../../router/paths';
-import type { Resume, ResumeContent } from '../../types';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useParams, useSearchParams } from "react-router";
+import { ArrowLeft, Upload } from "lucide-react";
+import {
+  exportResumePdf,
+  getResume,
+  loadResumeContent,
+  saveResumeContent,
+} from "../../api/resumes";
+import { errorMessage } from "../../api/client";
+import { SaveQueue } from "../../lib/saveQueue";
+import { session } from "../../lib/session";
+import { AboutForm } from "../../components/resume-editor/AboutForm";
+import { AdditionalForm } from "../../components/resume-editor/AdditionalForm";
+import { ContactsForm } from "../../components/resume-editor/ContactsForm";
+import { EducationForm } from "../../components/resume-editor/EducationForm";
+import { ExperienceForm } from "../../components/resume-editor/ExperienceForm";
+import { LivePreview } from "../../components/resume-editor/LivePreview";
+import { ProjectsForm } from "../../components/resume-editor/ProjectsForm";
+import { SectionTabs } from "../../components/resume-editor/SectionTabs";
+import { SkillsForm } from "../../components/resume-editor/SkillsForm";
+import {
+  SECTIONS,
+  isSectionId,
+  type SectionId,
+} from "../../components/resume-editor/sections";
+import { Button } from "../../components/ui/Button";
+import { buttonClasses } from "../../components/ui/buttonStyles";
+import { usePageTitle } from "../../hooks/usePageTitle";
+import { ROUTES } from "../../router/paths";
+import type { Resume, ResumeContent } from "../../types";
 
-type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 const STATUS_TEXT: Record<SaveStatus, string> = {
-  idle: '',
-  saving: 'Сохраняем…',
-  saved: 'Сохранено',
-  error: 'Не удалось сохранить',
+  idle: "",
+  saving: "Сохраняем…",
+  saved: "Сохранено",
+  error: "Не удалось сохранить",
 };
 
 const SAVE_DELAY_MS = 800;
 
 export default function ResumeDetailPage() {
-  const { id = '' } = useParams<{ id: string }>();
+  const { id } = useParams();
+  return <ResumeEditor key={id} />;
+}
+
+function ResumeEditor() {
+  const { id = "" } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [resume, setResume] = useState<Resume | null>(null);
   const [content, setContent] = useState<ResumeContent | null>(null);
   const [loadError, setLoadError] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [exporting, setExporting] = useState(false);
-  const [pdfMessage, setPdfMessage] = useState('');
+  const [pdfMessage, setPdfMessage] = useState("");
 
-  const dirty = useRef(false); // были ли правки пользователя (чтобы не сохранять сразу после загрузки)
-  const pendingSave = useRef<ResumeContent | null>(null);
+  const queue = useRef<SaveQueue<ResumeContent> | null>(null);
+  const version = useRef<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [saveError, setSaveError] = useState("");
+  const draftKey = `rh-draft:${session.getUser()?.id}:${id}`;
 
   usePageTitle(resume ? `Резюме / ${resume.title}` : null);
-
   useEffect(() => {
-    let cancelled = false;
-    dirty.current = false;
-    // BACKEND: GET /resumes/:id и GET /resumes/:id/content (api/resumes.ts)
-    Promise.all([getResume(id), getResumeContent(id)])
-      .then(([loadedResume, loadedContent]) => {
-        if (cancelled) return;
-        setResume(loadedResume);
-        setContent(loadedContent);
-      })
-      .catch(() => !cancelled && setLoadError(true));
+    const controller = new AbortController();
+    let active = true;
+
+    Promise.all([getResume(id, controller.signal), loadResumeContent(id, controller.signal)])
+      .then(([loadedResume, loaded]) => {
+        if (!active) return;
+        let initial = loaded.content;
+        let etag = loaded.etag;
+        let restored = false;
+        try {
+          const raw = sessionStorage.getItem(draftKey);
+          if (raw) {
+            const draft = JSON.parse(raw) as { content: ResumeContent; etag: string | null };
+            initial = draft.content; etag = draft.etag; restored = true;
+          }
+        } catch { /* Недоступное хранилище не блокирует редактор. */ }
+        version.current = etag;
+        const writer = new SaveQueue<ResumeContent>(async (value) => {
+          etag = await saveResumeContent(id, value, etag);
+          version.current = etag;
+          try {
+            const raw = sessionStorage.getItem(draftKey);
+            if (raw) {
+              const draft = JSON.parse(raw) as { content: ResumeContent };
+              if (JSON.stringify(draft.content) === JSON.stringify(value)) sessionStorage.removeItem(draftKey);
+              else sessionStorage.setItem(draftKey, JSON.stringify({ content: draft.content, etag }));
+            }
+          } catch { /* Серверное сохранение уже состоялось. */ }
+        });
+        queue.current = writer;
+        setResume(loadedResume); setContent(initial);
+        if (restored) { writer.enqueue(initial); setSaveStatus("error"); setSaveError("Восстановлен локальный черновик. Сохраните его или загрузите версию сервера."); }
+      }).catch(() => { if (active) setLoadError(true); });
     return () => {
-      cancelled = true;
+      active = false; controller.abort();
+      if (timer.current) clearTimeout(timer.current);
+      void queue.current?.flush().catch(() => {});
+      queue.current = null;
     };
-  }, [id]);
+  }, [id, draftKey]);
 
-  // Автосохранение с задержкой
-  useEffect(() => {
-    if (!content || !dirty.current) return;
-    pendingSave.current = content;
-    setSaveStatus('saving');
-    const timer = setTimeout(() => {
-      pendingSave.current = null;
-      saveResumeContent(id, content) // BACKEND: PUT /resumes/:id/content
-        .then(() => setSaveStatus('saved'))
-        .catch(() => setSaveStatus('error'));
-    }, SAVE_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [content, id]);
-
-  // Если ушли со страницы раньше, чем сработал таймер, сохраняем последние правки сразу
-  useEffect(
-    () => () => {
-      const pending = pendingSave.current;
-      pendingSave.current = null;
-      if (pending) void saveResumeContent(id, pending);
-    },
-    [id],
-  );
-
-  const updateContent = useCallback((updater: (prev: ResumeContent) => ResumeContent) => {
-    dirty.current = true;
-    setContent((prev) => (prev ? updater(prev) : prev));
+  const flush = useCallback(async () => {
+    if (timer.current) clearTimeout(timer.current);
+    setSaveStatus("saving");
+    try {
+      await queue.current?.flush();
+      setSaveStatus("saved"); setSaveError("");
+    } catch (error) {
+      setSaveStatus("error"); setSaveError(errorMessage(error)); throw error;
+    }
   }, []);
+  useEffect(() => {
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (queue.current?.dirty) { event.preventDefault(); event.returnValue = ""; }
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  }, []);
+  const updateContent = useCallback((updater: (prev: ResumeContent) => ResumeContent) => {
+    if (!content) return;
+    const next = updater(content);
+    setContent(next); queue.current?.enqueue(next);
+    try { sessionStorage.setItem(draftKey, JSON.stringify({ content: next, etag: version.current })); }
+    catch { /* Автосохранение работает и без локального хранилища. */ }
+    setSaveStatus("saving");
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => { void flush().catch(() => {}); }, SAVE_DELAY_MS);
+  }, [content, draftKey, flush]);
 
-  const sectionParam = searchParams.get('section');
-  const current: SectionId = isSectionId(sectionParam) ? sectionParam : 'contacts';
+  const sectionParam = searchParams.get("section");
+  const current: SectionId = isSectionId(sectionParam)
+    ? sectionParam
+    : "contacts";
   const index = SECTIONS.findIndex((s) => s.id === current);
 
-  const goTo = (section: SectionId) => setSearchParams({ section }, { replace: true });
+  const goTo = (section: SectionId) =>
+    setSearchParams({ section }, { replace: true });
 
   const step = (delta: number) => {
     goTo(SECTIONS[index + delta].id);
@@ -102,12 +150,13 @@ export default function ResumeDetailPage() {
 
   const handleExport = async () => {
     setExporting(true);
-    setPdfMessage('');
+    setPdfMessage("");
     try {
-      await exportResumePdf(id); // BACKEND: GET /resumes/:id/pdf
-      setPdfMessage('PDF появится после подключения бэкенда');
-    } catch {
-      setPdfMessage('Не удалось подготовить PDF');
+      await flush();
+      await exportResumePdf(id, resume?.title);
+      setPdfMessage("PDF скачан");
+    } catch (error) {
+      setPdfMessage(errorMessage(error));
     } finally {
       setExporting(false);
     }
@@ -119,7 +168,10 @@ export default function ResumeDetailPage() {
         <p role="alert" className="text-red-600">
           Не удалось загрузить резюме
         </p>
-        <Link to={ROUTES.resumes} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
+        <Link
+          to={ROUTES.resumes}
+          className={buttonClasses({ variant: "secondary", size: "sm" })}
+        >
           <ArrowLeft aria-hidden className="size-4" /> Все резюме
         </Link>
       </div>
@@ -130,48 +182,59 @@ export default function ResumeDetailPage() {
 
   const renderSection = () => {
     switch (current) {
-      case 'contacts':
+      case "contacts":
         return (
           <ContactsForm
             value={content.contacts}
             onChange={(contacts) => updateContent((c) => ({ ...c, contacts }))}
           />
         );
-      case 'about':
-        return <AboutForm value={content.about} onChange={(about) => updateContent((c) => ({ ...c, about }))} />;
-      case 'experience':
+      case "about":
+        return (
+          <AboutForm
+            value={content.about}
+            onChange={(about) => updateContent((c) => ({ ...c, about }))}
+          />
+        );
+      case "experience":
         return (
           <ExperienceForm
             value={content.experience}
-            onChange={(experience) => updateContent((c) => ({ ...c, experience }))}
+            onChange={(experience) =>
+              updateContent((c) => ({ ...c, experience }))
+            }
           />
         );
-      case 'projects':
+      case "projects":
         return (
           <ProjectsForm
             value={content.projects}
             onChange={(projects) => updateContent((c) => ({ ...c, projects }))}
           />
         );
-      case 'skills':
+      case "skills":
         return (
           <SkillsForm
             skills={content.skills}
             onChange={(skills) => updateContent((c) => ({ ...c, skills }))}
           />
         );
-      case 'education':
+      case "education":
         return (
           <EducationForm
             entries={content.education}
-            onChange={(education) => updateContent((c) => ({ ...c, education }))}
+            onChange={(education) =>
+              updateContent((c) => ({ ...c, education }))
+            }
           />
         );
-      case 'additional':
+      case "additional":
         return (
           <AdditionalForm
             entries={content.additional}
-            onChange={(additional) => updateContent((c) => ({ ...c, additional }))}
+            onChange={(additional) =>
+              updateContent((c) => ({ ...c, additional }))
+            }
           />
         );
     }
@@ -179,7 +242,10 @@ export default function ResumeDetailPage() {
 
   return (
     <div className="max-w-3xl">
-      <Link to={ROUTES.resumes} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
+      <Link
+        to={ROUTES.resumes}
+        className={buttonClasses({ variant: "secondary", size: "sm" })}
+      >
         <ArrowLeft aria-hidden className="size-4" /> Все резюме
       </Link>
 
@@ -199,6 +265,11 @@ export default function ResumeDetailPage() {
 
       <hr className="my-6 border-line" />
 
+      {saveError && <div role="alert" className="mb-4 text-sm text-red-700">
+        <p>{saveError}</p>
+        <Button size="sm" variant="secondary" onClick={() => { void flush().catch(() => {}); }}>Повторить сохранение</Button>
+        <Button size="sm" variant="secondary" onClick={() => { sessionStorage.removeItem(draftKey); window.location.reload(); }}>Загрузить версию сервера</Button>
+      </div>}
       <SectionTabs current={current} onSelect={goTo} />
 
       <div className="mt-6">{renderSection()}</div>
@@ -209,7 +280,7 @@ export default function ResumeDetailPage() {
 
       <footer className="mt-10 flex flex-wrap items-center justify-between gap-4">
         <p className="text-xs text-muted">
-          Изменения применяются сразу в этом сеансе.{' '}
+          Изменения автоматически сохраняются на сервере.{" "}
           <span aria-live="polite">{STATUS_TEXT[saveStatus]}</span>
         </p>
         <div className="flex gap-3">

@@ -98,11 +98,13 @@ export interface Vacancy {
   id: string;
   company: string;
   position: string;
+  url?: string; 
   resumeId: string | null;
   resumeTitle: string | null; // BACKEND: название резюме лучше отдавать с сервера вместе с вакансией
   nextStepDate: string | null; // YYYY-MM-DD
   status: VacancyStatus;
   description: string; 
+  notes: string; // личные заметки по вакансии
 }
 
 export type VacancyInput = Omit<Vacancy, 'id'>;

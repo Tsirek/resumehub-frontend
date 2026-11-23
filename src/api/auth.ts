@@ -1,34 +1,55 @@
-import type { AuthResponse, LoginPayload, RegisterPayload } from '../types';
-import { mockDelay } from './client';
+import type {
+  AuthResponse,
+  LoginPayload,
+  RegisterPayload,
+  User,
+} from "../types";
+import { session } from "../lib/session";
+import { request } from "./client";
 
-// BACKEND: POST /auth/login
-export async function loginRequest(payload: LoginPayload): Promise<AuthResponse> {
-  // return request<AuthResponse>('/auth/login', {
-  //   method: 'POST',
-  //   body: JSON.stringify({ email: payload.email, password: payload.password }),
-  // });
-  await mockDelay();
+export async function loginRequest(
+  payload: LoginPayload,
+): Promise<AuthResponse> {
+  const tokens = await request<{ access_token: string; refresh_token: string }>(
+    "/login",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        email: payload.email,
+        password: payload.password,
+      }),
+    },
+    false,
+  );
+  const user = await request<User>(
+    "/users/me",
+    {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    },
+    false,
+  );
   return {
-    token: 'mock-token',
-    user: { id: '1', name: 'Иван Иванов', email: payload.email },
+    token: tokens.access_token,
+    refreshToken: tokens.refresh_token,
+    user: { ...user, id: String(user.id) },
   };
 }
-
-// BACKEND: POST /auth/register
-export async function registerRequest(payload: RegisterPayload): Promise<AuthResponse> {
-  // return request<AuthResponse>('/auth/register', {
-  //   method: 'POST',
-  //   body: JSON.stringify(payload),
-  // });
-  await mockDelay();
-  return {
-    token: 'mock-token',
-    user: { id: '1', name: payload.name, email: payload.email },
-  };
+export async function registerRequest(
+  payload: RegisterPayload,
+): Promise<AuthResponse> {
+  await request(
+    "/users",
+    { method: "POST", body: JSON.stringify(payload) },
+    false,
+  );
+  return loginRequest({ ...payload, remember: true });
 }
-
-// BACKEND: POST /auth/logout (инвалидация токена/сессии на сервере)
 export async function logoutRequest(): Promise<void> {
-  // await request<void>('/auth/logout', { method: 'POST' });
-  await mockDelay(200);
+  const refreshToken = session.getRefreshToken();
+  if (refreshToken)
+    await request(
+      "/logout",
+      { method: "POST", body: JSON.stringify({ refresh_token: refreshToken }) },
+      false,
+    );
 }

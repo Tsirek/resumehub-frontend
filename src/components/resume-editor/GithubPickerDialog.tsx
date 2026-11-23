@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { X } from 'lucide-react';
-import { fetchRepositories } from '../../api/github';
+import { errorMessage } from '../../api/client';
+import { importRepositories, fetchRepositories } from '../../api/github';
 import type { Repository } from '../../types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -40,8 +41,8 @@ export function GithubPickerDialog({ open, onClose, onSelect }: GithubPickerDial
     setSelected(new Set());
     try {
       setRepos(await fetchRepositories(name)); // BACKEND: GET /github/repos (api/github.ts)
-    } catch {
-      setError('Не удалось загрузить репозитории');
+    } catch (error) {
+      setError(errorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -55,10 +56,14 @@ export function GithubPickerDialog({ open, onClose, onSelect }: GithubPickerDial
       return next;
     });
 
-  const handleConfirm = () => {
-    onSelect(repos?.filter((r) => selected.has(r.id)) ?? []);
-    setSelected(new Set());
-    onClose();
+  const handleConfirm = async () => {
+    setLoading(true); setError(null);
+    try {
+      const chosen = repos?.filter((r) => selected.has(r.id)) ?? [];
+      await importRepositories(chosen.map(repo => repo.id));
+      onSelect(chosen); setSelected(new Set()); onClose();
+    } catch (error) { setError(errorMessage(error)); }
+    finally { setLoading(false); }
   };
 
   return (
@@ -146,7 +151,7 @@ export function GithubPickerDialog({ open, onClose, onSelect }: GithubPickerDial
           <Button variant="secondary" size="sm" onClick={onClose}>
             Отмена
           </Button>
-          <Button size="sm" disabled={selected.size === 0} onClick={handleConfirm}>
+          <Button size="sm" disabled={selected.size === 0 || loading} onClick={handleConfirm}>
             Добавить выбранные ({selected.size})
           </Button>
         </div>
