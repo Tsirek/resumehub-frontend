@@ -26,7 +26,7 @@ export function Sidebar() {
   const name = profileName ?? user?.name ?? "Пользователь";
 
   return (
-    <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-white px-8 py-9">
+    <aside className="flex w-64 shrink-0 flex-col border-r border-line bg-white px-8 py-9">
       <Logo to={ROUTES.profile} />
 
       <nav
@@ -53,22 +53,37 @@ export function Sidebar() {
       </nav>
 
       <CoreModeNotice />
+
       <div className="mt-auto border-t border-line pt-5">
         <div className="flex items-center gap-3">
-          <span className="flex size-13 shrink-0 items-center justify-center rounded-full bg-primary-soft text-lg font-semibold text-primary">
+          <span
+            aria-hidden
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary-soft text-base font-semibold text-primary"
+          >
             {getInitials(name)}
           </span>
+
+          {/* min-w-0 позволяет тексту сжиматься внутри flex-строки, а не выпирать под кнопку */}
           <div className="min-w-0 flex-1">
-            <p className="font-semibold leading-tight text-ink">{name}</p>
-            <p className="text-[10px] text-muted">Личное пространство</p>
+            <p
+              title={name}
+              className="line-clamp-2 break-words text-sm font-semibold leading-tight text-ink"
+            >
+              {name}
+            </p>
+            <p className="mt-0.5 text-[11px] leading-tight text-muted">
+              Личное пространство
+            </p>
           </div>
+
           <button
             type="button"
             onClick={logout}
             aria-label="Выйти из аккаунта"
-            className="rounded-md p-1 text-muted hover:bg-field hover:text-ink"
+            title="Выйти"
+            className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-field hover:text-ink focus-visible:outline-2 focus-visible:outline-primary"
           >
-            <LogOut className="size-4" />
+            <LogOut aria-hidden className="size-4" />
           </button>
         </div>
       </div>
