@@ -48,7 +48,7 @@ async function responseWithAuth(path: string, options: RequestInit, authenticate
   const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
   const send = () => {
     const headers = new Headers(options.headers);
-    if (options.body) headers.set('Content-Type', 'application/json');
+    if (options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
     if (authenticated && session.getToken() && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${session.getToken()}`);
     return fetch(`${API_URL}${path}`, { ...options, signal, headers });
   };

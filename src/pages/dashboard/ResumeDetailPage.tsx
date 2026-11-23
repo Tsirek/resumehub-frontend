@@ -15,7 +15,9 @@ import { AdditionalForm } from "../../components/resume-editor/AdditionalForm";
 import { ContactsForm } from "../../components/resume-editor/ContactsForm";
 import { EducationForm } from "../../components/resume-editor/EducationForm";
 import { ExperienceForm } from "../../components/resume-editor/ExperienceForm";
+import { ImagesForm } from "../../components/resume-editor/ImagesForm";
 import { LivePreview } from "../../components/resume-editor/LivePreview";
+import { useResumeImages } from "../../hooks/useResumeImages";
 import { ProjectsForm } from "../../components/resume-editor/ProjectsForm";
 import { SectionTabs } from "../../components/resume-editor/SectionTabs";
 import { SkillsForm } from "../../components/resume-editor/SkillsForm";
@@ -56,6 +58,7 @@ function ResumeEditor() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [exporting, setExporting] = useState(false);
   const [pdfMessage, setPdfMessage] = useState("");
+  const images = useResumeImages(id);
 
   const queue = useRef<SaveQueue<ResumeContent> | null>(null);
   const version = useRef<string | null>(null);
@@ -189,6 +192,21 @@ function ResumeEditor() {
             onChange={(contacts) => updateContent((c) => ({ ...c, contacts }))}
           />
         );
+      case "images":
+        return (
+          <ImagesForm
+            name={content.contacts.fullName}
+            images={images.images}
+            urls={images.urls}
+            loading={images.loading}
+            busy={images.busy}
+            error={images.error}
+            onUpload={(files) => { void images.upload(files); }}
+            onSelectAvatar={(imageId) => { void images.selectAvatar(imageId); }}
+            onRemove={(imageId) => { void images.remove(imageId); }}
+            onUrlExpired={images.refreshUrl}
+          />
+        );
       case "about":
         return (
           <AboutForm
@@ -275,7 +293,7 @@ function ResumeEditor() {
       <div className="mt-6">{renderSection()}</div>
 
       <div className="mt-8">
-        <LivePreview content={content} />
+        <LivePreview content={content} avatarUrl={images.avatarUrl} onAvatarError={images.refreshAvatar} />
       </div>
 
       <footer className="mt-10 flex flex-wrap items-center justify-between gap-4">

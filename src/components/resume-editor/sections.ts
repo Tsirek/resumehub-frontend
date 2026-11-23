@@ -1,5 +1,6 @@
 export type SectionId =
   | 'contacts'
+  | 'images'
   | 'about'
   | 'experience'
   | 'projects'
@@ -9,6 +10,7 @@ export type SectionId =
 
 export const SECTIONS: { id: SectionId; label: string }[] = [
   { id: 'contacts', label: 'Контакты' },
+  { id: 'images', label: 'Изображения' },
   { id: 'about', label: 'О себе' },
   { id: 'experience', label: 'Опыт' },
   { id: 'projects', label: 'Проекты' },

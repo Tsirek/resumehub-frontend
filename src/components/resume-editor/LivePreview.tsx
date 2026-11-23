@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { isExperienceEmpty, isProjectEmpty } from '../../lib/resumeContent';
 import type { ResumeContent } from '../../types';
+import { AvatarCircle } from './AvatarCircle';
 
 function PreviewSection({ title, children }: { title: string; children?: ReactNode }) {
   if (!children) return null;
@@ -15,7 +16,13 @@ function PreviewSection({ title, children }: { title: string; children?: ReactNo
 /** Запись считается пустой, если все её текстовые поля состоят из пробелов */
 const isBlank = (...values: string[]) => values.every((v) => v.trim() === '');
 
-export function LivePreview({ content }: { content: ResumeContent }) {
+interface LivePreviewProps {
+  content: ResumeContent;
+  avatarUrl?: string | null;
+  onAvatarError?: () => void;
+}
+
+export function LivePreview({ content, avatarUrl, onAvatarError }: LivePreviewProps) {
   const { contacts } = content;
   const experience = content.experience.filter((e) => !isExperienceEmpty(e));
   const projects = content.projects.filter((p) => !isProjectEmpty(p));
@@ -30,12 +37,15 @@ export function LivePreview({ content }: { content: ResumeContent }) {
       </h2>
 
       <article className="rounded-2xl border border-line bg-white p-8 shadow-sm">
+        {avatarUrl && (
+          <AvatarCircle url={avatarUrl} alt="Аватар" onError={onAvatarError} className="float-right ml-4" />
+        )}
         <p className="text-2xl font-semibold text-ink">{contacts.fullName || 'Имя и фамилия'}</p>
         {contacts.position && <p className="mt-1 font-medium text-primary">{contacts.position}</p>}
         {contacts.location && <p className="mt-4 text-[11px] text-muted">{contacts.location}</p>}
         {contacts.email && <p className="text-[11px] text-ink underline">{contacts.email}</p>}
 
-        <hr className="my-6 border-line" />
+        <hr className="clear-both my-6 border-line" />
 
         <PreviewSection title="Профиль">
           {content.about.trim() ? <p className="whitespace-pre-line">{content.about}</p> : null}
