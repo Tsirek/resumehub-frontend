@@ -9,6 +9,7 @@ import type { Resume, Vacancy, VacancyInput, VacancyStatus } from '../../types';
 interface VacancyDialogProps {
   vacancy: Vacancy | null; // null → создание
   resumes: Resume[];
+  resumeError: string | null;
   onClose: () => void;
   onSubmit: (input: VacancyInput) => Promise<void>;
 }
@@ -55,7 +56,7 @@ function Field({ label, htmlFor, required, children }: FieldProps) {
   );
 }
 
-export function VacancyDialog({ vacancy, resumes, onClose, onSubmit }: VacancyDialogProps) {
+export function VacancyDialog({ vacancy, resumes, resumeError, onClose, onSubmit }: VacancyDialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const uid = useId();
 
@@ -231,9 +232,9 @@ export function VacancyDialog({ vacancy, resumes, onClose, onSubmit }: VacancyDi
               Прикрепить снимок текущего резюме
             </label>
             <p id={`${uid}-snapshot-hint`} className="mt-1 text-xs text-muted">
-              {canAttach
+              {resumeError || (canAttach
                 ? 'Снимок не изменится при дальнейшей правке резюме.'
-                : 'Чтобы прикрепить снимок, сначала создайте резюме.'}
+                : 'Чтобы прикрепить снимок, сначала создайте резюме.')}
             </p>
           </div>
 

@@ -78,3 +78,6 @@ export const errorMessage = (error: unknown): string => {
   if (error instanceof TypeError) return 'Нет связи с сервером. Проверьте соединение и повторите запрос.';
   return error instanceof Error ? error.message : 'Не удалось выполнить запрос.';
 };
+
+export const mockDelay = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));

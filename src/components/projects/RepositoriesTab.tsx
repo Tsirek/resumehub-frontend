@@ -112,6 +112,7 @@ export function RepositoriesTab({
       try {
         stored = JSON.parse(sessionStorage.getItem(storageKey) ?? "null");
       } catch {
+        // Повреждённая запись не мешает создать новый идентификатор запроса.
       }
       requestKey.current =
         stored?.signature === signature

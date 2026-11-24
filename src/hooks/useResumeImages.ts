@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { errorMessage } from '../api/client';
 import {
   deleteResumeImage,
@@ -8,81 +8,192 @@ import {
   uploadResumeImage,
   validateImageFile,
 } from '../api/images';
-import type { ResumeImage } from '../types/images';
+import type { ImageStatus, ResumeImage, ResumeImageUrl } from '../types/images';
 
-const URL_REFRESH_COOLDOWN_MS = 30_000;
+const POLL_MS = 2500;
+const URL_RETRY_MS = 15_000;
+const URL_EXPIRY_BUFFER_MS = 5000;
+type PreviewVariant = 'preview' | 'avatar';
+type UrlKey = `${PreviewVariant}:${string}`;
+const pending = (status: ImageStatus | null) => status === 'queued' || status === 'processing';
 
-export function useResumeImages(resumeId: string) {
-  const [images, setImages] = useState<ResumeImage[]>([]);
-  const [urls, setUrls] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const refreshedAt = useRef<Record<string, number>>({});
+interface GalleryState {
+  resumeId: string;
+  images: ResumeImage[];
+  error: string;
+}
 
-  const loadUrl = useCallback(async (imageId: string, signal?: AbortSignal) => {
-    try {
-      const { url } = await getResumeImageUrl(resumeId, imageId, signal);
-      setUrls((prev) => ({ ...prev, [imageId]: url }));
-    } catch { /* Без ссылки показываем заглушку, остальное продолжает работать. */ }
-  }, [resumeId]);
+function useImageLinks(resumeId: string, images: ResumeImage[]) {
+  const targets = images.flatMap((image) => {
+    if (image.status !== 'ready') return [];
+    return image.isAvatar ? [`preview:${image.id}`, `avatar:${image.id}`] : [`preview:${image.id}`];
+  }).join(',');
+  const cache = useRef(new Map<string, ResumeImageUrl>());
+  const refresh = useRef<(key: UrlKey) => void>(() => {});
+  const [links, setLinks] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const controller = new AbortController();
-    listResumeImages(resumeId, controller.signal)
-      .then((list) => {
-        setImages(list); setLoading(false);
-        list.forEach((image) => void loadUrl(image.id, controller.signal));
-      })
-      .catch((e: unknown) => {
-        if (controller.signal.aborted) return;
-        setError(errorMessage(e)); setLoading(false);
-      });
-    return () => controller.abort();
-  }, [resumeId, loadUrl]);
-
-  /** Подписанная ссылка живёт недолго: при ошибке загрузки запрашиваем новую, не чаще раза в 30 с. */
-  const refreshUrl = useCallback((imageId: string) => {
-    const now = Date.now();
-    if (now - (refreshedAt.current[imageId] ?? 0) < URL_REFRESH_COOLDOWN_MS) return;
-    refreshedAt.current[imageId] = now;
-    void loadUrl(imageId);
-  }, [loadUrl]);
-
-  const upload = useCallback(async (files: File[]) => {
-    setError(''); setBusy(true);
-    for (const file of files) {
-      const problem = validateImageFile(file);
-      if (problem) { setError(problem); continue; }
-      try {
-        const image = await uploadResumeImage(resumeId, file);
-        setImages((prev) => [...prev, image]);
-        void loadUrl(image.id);
-      } catch (e) { setError(errorMessage(e)); }
+    const keys = new Set((targets ? targets.split(',') : []) as UrlKey[]);
+    const running = new Set<UrlKey>();
+    const retryAt = new Map<UrlKey, number>();
+    const invalid = new Set<UrlKey>();
+    const forcedAt = new Map<UrlKey, number>();
+    const prefix = `${resumeId}/`;
+    for (const key of cache.current.keys()) {
+      if (!key.startsWith(prefix) || !keys.has(key.slice(prefix.length) as UrlKey)) {
+        cache.current.delete(key);
+      }
     }
-    setBusy(false);
-  }, [resumeId, loadUrl]);
 
-  const selectAvatar = useCallback(async (imageId: string | null) => {
-    setError('');
-    const previous = images;
-    setImages(previous.map((image) => ({ ...image, isAvatar: image.id === imageId })));
-    try { await setResumeAvatar(resumeId, imageId); }
-    catch (e) { setImages(previous); setError(errorMessage(e)); }
-  }, [images, resumeId]);
+    async function update(key: UrlKey) {
+      if (!keys.has(key) || running.has(key) || Date.now() < (retryAt.get(key) ?? 0)) return;
+      const [variant, imageId] = key.split(':') as [PreviewVariant, string];
+      running.add(key);
+      try {
+        const link = await getResumeImageUrl(resumeId, imageId, variant, controller.signal);
+        if (controller.signal.aborted) return;
+        const cacheKey = prefix + key;
+        cache.current.set(cacheKey, link);
+        invalid.delete(key);
+        setLinks((previous) => ({ ...previous, [cacheKey]: link.url }));
+      } catch {
+        if (!controller.signal.aborted) invalid.add(key);
+      } finally {
+        running.delete(key);
+      }
+    }
 
-  const remove = useCallback(async (imageId: string) => {
-    setError('');
-    try {
-      await deleteResumeImage(resumeId, imageId);
-      setImages((prev) => prev.filter((image) => image.id !== imageId));
-      setUrls((prev) => { const next = { ...prev }; delete next[imageId]; return next; });
-    } catch (e) { setError(errorMessage(e)); }
+    const maintain = () => {
+      for (const key of keys) {
+        const link = cache.current.get(prefix + key);
+        if (invalid.has(key) || !link || Date.parse(link.expiresAt) <= Date.now() + URL_EXPIRY_BUFFER_MS) {
+          // Ограничиваем частоту повторов при недоступном хранилище.
+          void update(key);
+          if (running.has(key)) retryAt.set(key, Date.now() + URL_RETRY_MS);
+        }
+      }
+    };
+    refresh.current = (key) => {
+      if (!keys.has(key)) return;
+      invalid.add(key);
+      if (!running.has(key) && Date.now() >= (forcedAt.get(key) ?? 0)) {
+        forcedAt.set(key, Date.now() + URL_RETRY_MS);
+        retryAt.delete(key);
+        maintain();
+      }
+    };
+    maintain();
+    const timer = window.setInterval(maintain, URL_EXPIRY_BUFFER_MS);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+    };
+  }, [resumeId, targets]);
+
+  const avatarId = images.find((image) => image.isAvatar)?.id;
+  const urls = Object.fromEntries(images.map(({ id }) => [id, links[`${resumeId}/preview:${id}`]]));
+  const refreshUrl = useCallback((id: string) => refresh.current(`preview:${id}`), []);
+  const refreshAvatar = useCallback(() => {
+    if (avatarId) refresh.current(`avatar:${avatarId}`);
+  }, [avatarId]);
+
+  return { urls, avatarUrl: avatarId ? links[`${resumeId}/avatar:${avatarId}`] ?? null : null, refreshUrl, refreshAvatar };
+}
+
+export function useResumeImages(resumeId: string) {
+  const [state, setState] = useState<GalleryState | null>(null);
+  const [action, setAction] = useState<{ resumeId: string; busy: boolean; error: string } | null>(null);
+  const [revision, reload] = useReducer((value: number) => value + 1, 0);
+  const mutation = useRef<AbortController | null>(null);
+  const current = state?.resumeId === resumeId ? state : null;
+  const images = current?.images ?? [];
+  const links = useImageLinks(resumeId, images);
+
+  useEffect(() => () => {
+    mutation.current?.abort();
+    mutation.current = null;
   }, [resumeId]);
 
-  const avatar = images.find((image) => image.isAvatar);
-  const avatarUrl = avatar ? urls[avatar.id] ?? null : null;
-  const refreshAvatar = useCallback(() => { if (avatar) refreshUrl(avatar.id); }, [avatar, refreshUrl]);
+  useEffect(() => {
+    if (!resumeId) return;
+    const controller = new AbortController();
+    let timer: number | undefined;
 
-  return { images, urls, loading, busy, error, upload, selectAvatar, remove, refreshUrl, avatarUrl, refreshAvatar };
+    async function refreshGallery() {
+      try {
+        const images = await listResumeImages(resumeId, controller.signal);
+        if (controller.signal.aborted) return;
+        setState({ resumeId, images, error: '' });
+        if (!images.some((image) => pending(image.status) || pending(image.avatarStatus))) return;
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setState((previous) => ({
+          resumeId,
+          images: previous?.resumeId === resumeId ? previous.images : [],
+          error: errorMessage(error),
+        }));
+      }
+      timer = window.setTimeout(() => { void refreshGallery(); }, POLL_MS);
+    }
+
+    void refreshGallery();
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [resumeId, revision]);
+
+  const runMutation = useCallback(async (action: (signal: AbortSignal) => Promise<void>) => {
+    if (mutation.current) return;
+    const controller = new AbortController();
+    mutation.current = controller;
+    setAction({ resumeId, busy: true, error: '' });
+    try {
+      await action(controller.signal);
+    } catch (error) {
+      if (!controller.signal.aborted) setAction({ resumeId, busy: true, error: errorMessage(error) });
+    } finally {
+      if (mutation.current === controller) {
+        mutation.current = null;
+        setAction((previous) => ({ resumeId, busy: false, error: previous?.error ?? '' }));
+        reload();
+      }
+    }
+  }, [resumeId]);
+
+  const upload = (files: File[], target: 'images' | 'avatar' = 'images') =>
+    runMutation(async (signal) => {
+      const errors: string[] = [];
+      for (const file of files) {
+        if (signal.aborted) return;
+        const problem = validateImageFile(file);
+        if (problem) {
+          errors.push(problem);
+          continue;
+        }
+        try {
+          await uploadResumeImage(resumeId, file, target, signal);
+          reload();
+        } catch (error) {
+          errors.push(errorMessage(error));
+        }
+      }
+      if (errors.length) throw new Error(errors.join(' '));
+    });
+
+  const selectAvatar = (imageId: string | null) => runMutation(async (signal) => {
+    await setResumeAvatar(resumeId, imageId, signal);
+  });
+
+  const remove = (id: string) => runMutation(async (signal) => {
+    await deleteResumeImage(resumeId, id, signal);
+  });
+
+  const currentAction = action?.resumeId === resumeId ? action : null;
+  return {
+    images, ...links, loading: !current, busy: currentAction?.busy ?? false,
+    error: currentAction?.error || current?.error || '',
+    upload, selectAvatar, remove,
+  };
 }

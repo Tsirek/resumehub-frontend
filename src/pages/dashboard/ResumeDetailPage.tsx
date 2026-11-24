@@ -201,7 +201,10 @@ function ResumeEditor() {
             loading={images.loading}
             busy={images.busy}
             error={images.error}
+            avatarUrl={images.avatarUrl}
+            onAvatarUrlExpired={images.refreshAvatar}
             onUpload={(files) => { void images.upload(files); }}
+            onUploadAvatar={(file) => { void images.upload([file], "avatar"); }}
             onSelectAvatar={(imageId) => { void images.selectAvatar(imageId); }}
             onRemove={(imageId) => { void images.remove(imageId); }}
             onUrlExpired={images.refreshUrl}
